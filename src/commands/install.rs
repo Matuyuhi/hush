@@ -86,18 +86,13 @@ fn hook_command() -> Result<String> {
     Ok(format!("{} hook", escape_path_for_bash(&p)))
 }
 
-pub fn run(user: bool) -> Result<i32> {
-    let lay = layout(user)?;
-    fs::create_dir_all(&lay.claude_dir)
-        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
-
-    fs::write(&lay.hush_md, HUSH_MD)
-        .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
-
-    let cmd = hook_command()?;
-    let added_hook = install_hook(&lay.settings, &cmd)?;
-    let added_import = add_import(&lay.claude_md, &lay.import_line)?;
-
+fn render_install_result(
+    user: bool,
+    added_hook: bool,
+    added_import: bool,
+    cmd: &str,
+    import_line: &str,
+) {
     let scope = if user { "user" } else { "project" };
     let (settings_disp, hush_disp, claude_disp) = display_paths(user);
     let rows = vec![
@@ -114,7 +109,7 @@ pub fn run(user: bool) -> Result<i32> {
         Row::Line(format!(
             "  CLAUDE.md      {claude_disp}  ({})",
             if added_import {
-                format!("added {}", lay.import_line)
+                format!("added {}", import_line)
             } else {
                 "already present".to_string()
             }
@@ -132,21 +127,32 @@ pub fn run(user: bool) -> Result<i32> {
     ];
     println!();
     ui::render(&rows);
+}
+
+pub fn run(user: bool) -> Result<i32> {
+    let lay = layout(user)?;
+    fs::create_dir_all(&lay.claude_dir)
+        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
+
+    fs::write(&lay.hush_md, HUSH_MD)
+        .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
+
+    let cmd = hook_command()?;
+    let added_hook = install_hook(&lay.settings, &cmd)?;
+    let added_import = add_import(&lay.claude_md, &lay.import_line)?;
+
+    render_install_result(user, added_hook, added_import, &cmd, &lay.import_line);
     Ok(0)
 }
 
-pub fn uninstall(user: bool) -> Result<i32> {
-    let lay = layout(user)?;
-    let removed_hook = remove_hook(&lay.settings)?;
-    let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
-
+fn render_uninstall_result(user: bool, removed_hook: bool, removed_import: bool) {
     let scope = if user { "user" } else { "project" };
-    let (_settings_disp, hush_disp, _claude_disp) = display_paths(user);
+    let (settings_disp, hush_disp, claude_disp) = display_paths(user);
     let rows = vec![
         Row::Center(format!("hush uninstall ({scope})")),
         Row::Rule,
         Row::Line(format!(
-            "  settings.json  {}",
+            "  settings.json  {settings_disp}  ({})",
             if removed_hook {
                 "removed hook"
             } else {
@@ -154,7 +160,7 @@ pub fn uninstall(user: bool) -> Result<i32> {
             }
         )),
         Row::Line(format!(
-            "  CLAUDE.md      {}",
+            "  CLAUDE.md      {claude_disp}  ({})",
             if removed_import {
                 "removed @import"
             } else {
@@ -165,6 +171,14 @@ pub fn uninstall(user: bool) -> Result<i32> {
     ];
     println!();
     ui::render(&rows);
+}
+
+pub fn uninstall(user: bool) -> Result<i32> {
+    let lay = layout(user)?;
+    let removed_hook = remove_hook(&lay.settings)?;
+    let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
+
+    render_uninstall_result(user, removed_hook, removed_import);
     Ok(0)
 }
 
