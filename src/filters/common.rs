@@ -9,7 +9,9 @@ pub fn collapse_blank_runs(text: &str) -> String {
         if blank && prev_blank {
             continue;
         }
-        out.push_str(line);
+        if !blank {
+            out.push_str(line);
+        }
         out.push('\n');
         prev_blank = blank;
     }
@@ -198,6 +200,33 @@ pub fn strip_ansi(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn collapse_blank_runs_removes_leading_and_trailing() {
+        assert_eq!(collapse_blank_runs("\n\nhello\n\n"), "hello");
+        assert_eq!(collapse_blank_runs("   \n\nhello\n  \n"), "hello");
+        assert_eq!(collapse_blank_runs("\t\n\nhello\n\t  \n"), "hello");
+    }
+
+    #[test]
+    fn collapse_blank_runs_collapses_middle_blanks() {
+        assert_eq!(collapse_blank_runs("hello\n\n\nworld"), "hello\n\nworld");
+        assert_eq!(collapse_blank_runs("a\n   \n\nb"), "a\n\nb");
+    }
+
+    #[test]
+    fn collapse_blank_runs_handles_no_blanks() {
+        assert_eq!(collapse_blank_runs("hello\nworld"), "hello\nworld");
+        assert_eq!(collapse_blank_runs("single_line"), "single_line");
+    }
+
+    #[test]
+    fn collapse_blank_runs_handles_only_blanks() {
+        assert_eq!(collapse_blank_runs(""), "");
+        assert_eq!(collapse_blank_runs("\n"), "");
+        assert_eq!(collapse_blank_runs("\n\n\n"), "");
+        assert_eq!(collapse_blank_runs("   \n  \n"), "");
+    }
 
     #[test]
     fn strip_ansi_removes_csi_color() {
