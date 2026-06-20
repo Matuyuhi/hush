@@ -1,5 +1,5 @@
 # Template for Matuyuhi/homebrew-tools/Formula/hush.rb.
-# Values are substituted and pushed by Matuyuhi/hush (.github/workflows/release.yml) on each `v*` tag.
+# Values are substituted and pushed by Matuyuhi/hush (.github/workflows/release.yml) on each release.
 
 class Hush < Formula
   desc "Compress dev-command output for LLMs; the filter physically cannot transmit it"

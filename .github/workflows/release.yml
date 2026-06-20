@@ -1,17 +1,22 @@
 name: Release
 
-# タグ v* を push するとビルド → GitHub Release 添付 → tap formula 自動更新。
+# リリースはタグ手打ち不要。Cargo.toml の version を「リリース信号」にする:
+#   main へ push → CI が version を読み、その v<version> の Release が未作成なら
+#   自動でタグ作成 + 4 ターゲットをビルド + Release 添付 + tap formula 更新。
+# つまり「version を上げて PR をマージ」するだけでリリースされる。
+# 手動で回したいときは Actions の "Run workflow"(workflow_dispatch) でも起動可。
 #
 # 前提シークレット: HOMEBREW_TAP_TOKEN
 #   Matuyuhi/homebrew-tools への書き込み権を持つ PAT
 #   （fine-grained: その repo の Contents = Read and write）。
-#   未設定なら update-tap はスキップ（Release までは作られる）。
+#   未設定なら update-tap はスキップ（タグ作成 + Release までは走る）。
 #
 # サードパーティ Action は供給網最小化のため公式 actions/checkout のみ。残りは gh / rustup / sed。
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,20 +25,47 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  create-release:
+  guard:
+    # Cargo.toml の version を読み、その Release が未作成なら release=true。
     runs-on: ubuntu-24.04
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+      version: ${{ steps.check.outputs.version }}
     steps:
-      - name: Create the GitHub Release (idempotent)
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - id: check
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
         run: |
-          gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$REPO" --title "$TAG" --generate-notes --verify-tag
+          VER="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VER" --repo "$REPO" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "v$VER is already released; nothing to do."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "v$VER not released yet; will release."
+          fi
+
+  create-release:
+    needs: guard
+    if: needs.guard.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Create tag + GitHub Release at this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VER: ${{ needs.guard.outputs.version }}
+          SHA: ${{ github.sha }}
+        run: |
+          gh release create "v$VER" --repo "$REPO" --target "$SHA" \
+            --title "v$VER" --generate-notes
 
   build:
-    needs: create-release
+    needs: [guard, create-release]
+    if: needs.guard.outputs.release == 'true'
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -65,11 +97,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: gh release upload "$TAG" "${{ matrix.asset }}" --repo "$REPO" --clobber
+          VER: ${{ needs.guard.outputs.version }}
+        run: gh release upload "v$VER" "${{ matrix.asset }}" --repo "$REPO" --clobber
 
   update-tap:
-    needs: build
+    needs: [guard, build]
+    if: needs.guard.outputs.release == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -78,7 +111,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          VER: ${{ needs.guard.outputs.version }}
           TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           if [ -z "$TAP_TOKEN" ]; then
@@ -86,11 +119,10 @@ jobs:
             echo "Release assets are published; update Matuyuhi/homebrew-tools/Formula/hush.rb manually."
             exit 0
           fi
-          VER="${TAG#v}"
 
           mkdir dist && cd dist
           for a in hush-aarch64-apple-darwin hush-x86_64-apple-darwin hush-aarch64-linux hush-x86_64-linux; do
-            gh release download "$TAG" --repo "$REPO" -p "$a.tar.gz"
+            gh release download "v$VER" --repo "$REPO" -p "$a.tar.gz"
           done
           MA="$(sha256sum hush-aarch64-apple-darwin.tar.gz | cut -d' ' -f1)"
           MX="$(sha256sum hush-x86_64-apple-darwin.tar.gz | cut -d' ' -f1)"

@@ -5,17 +5,23 @@
 
 tap: <https://github.com/Matuyuhi/homebrew-tools>
 
-## 仕組み
+## 仕組み（タグ手打ち不要）
 
-`.github/workflows/release.yml` が `v*` タグ push をトリガに自動で:
+`Cargo.toml` の `version` が「リリース信号」。`.github/workflows/release.yml` が
+**main への push** で起動し:
 
-1. 4 ターゲットをネイティブビルド
+0. `Cargo.toml` の version を読む。その `v<version>` の Release が既にあれば何もしない
+1. 無ければ `v<version>` タグ + GitHub Release をその commit に作成
+2. 4 ターゲットをネイティブビルド
    - `macos-26`（arm）→ `aarch64-apple-darwin` と `x86_64-apple-darwin`（クロス）
    - `ubuntu-24.04` → `x86_64-linux`
    - `ubuntu-24.04-arm` → `aarch64-linux`
-2. 各バイナリを `hush-<target>.tar.gz` にして GitHub Release に添付
-3. `packaging/homebrew/hush.rb`（テンプレート）の `__VERSION__` と各 `__SHA_*__` を実値に差し替え、
+3. 各バイナリを `hush-<target>.tar.gz` にして Release に添付
+4. `packaging/homebrew/hush.rb`（テンプレート）の `__VERSION__` と各 `__SHA_*__` を実値に差し替え、
    tap の `Formula/hush.rb` を更新してコミット/プッシュ
+
+→ **version を上げて PR をマージするだけ**でリリースされる（手動 `git tag` 不要）。
+手動で回したいときは Actions → Release → "Run workflow"。
 
 ## 一度だけの準備: シークレット
 
@@ -29,13 +35,12 @@ tap への自動コミットに PAT が必要。
 
 ## リリース手順
 
-```sh
-# バージョンを上げて Cargo.lock も更新・コミット（main 上で）
-git tag v0.1.0
-git push origin v0.1.0
-```
+`Cargo.toml` の `version` を上げて（`cargo build` で `Cargo.lock` も更新）、PR をマージするだけ。
+main への push を CI が検知し、その version の Release が無ければ自動でタグ作成 → ビルド →
+Release 添付 → tap 更新まで行う。
 
-あとは release.yml が Release 添付と tap 更新まで行う。
+初回 `v0.1.0` は、この仕組みがある状態で main が更新された時点（例: 本 PR のマージ）で走る。
+tap 更新まで効かせたい場合は事前に `HOMEBREW_TAP_TOKEN` を登録しておくこと。
 
 ## 動作確認
 
