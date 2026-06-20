@@ -21,6 +21,18 @@ Cargo.lock  (+480 -0)
 [hush:git-diff id=8a3f783e0830 lines=608->7 - `hush expand 8a3f783e0830` for full output]
 ```
 
+## Table of Contents
+
+- [Why](#why)
+- [Compression](#compression)
+- [Install](#install)
+- [Usage](#usage)
+  - [Claude Code integration](#claude-code-integration)
+- [How it works](#how-it-works)
+- [Platform support](#platform-support)
+- [Development](#development)
+- [License](#license)
+
 ## Why
 
 - **Non-transmission by construction** — a one-way gate is applied *before* any
