@@ -224,6 +224,35 @@ mod tests {
     }
 
     #[test]
+    fn truncate_head_truncates_when_over_max() {
+        let lines: Vec<String> = (1..=10).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines, 5, 3);
+        assert!(truncated);
+        assert_eq!(out.len(), 4); // 3 head lines + 1 marker
+        assert_eq!(out[0], "1");
+        assert_eq!(out[1], "2");
+        assert_eq!(out[2], "3");
+        assert_eq!(out[3], "... 7 more lines (hush expand for full)");
+    }
+
+    #[test]
+    fn truncate_head_noop_when_under_max() {
+        let lines: Vec<String> = (1..=5).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines.clone(), 5, 3);
+        assert!(!truncated);
+        assert_eq!(out, lines);
+    }
+
+    #[test]
+    fn truncate_head_zero_head() {
+        let lines: Vec<String> = (1..=5).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines, 3, 0);
+        assert!(truncated);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0], "... 5 more lines (hush expand for full)");
+    }
+
+    #[test]
     fn truncate_head_tail_keeps_both_ends() {
         let lines: Vec<String> = (1..=50).map(|n| n.to_string()).collect();
         let (out, truncated) = truncate_head_tail(lines, 40, 3, 2);
