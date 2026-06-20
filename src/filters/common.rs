@@ -16,7 +16,7 @@ pub fn collapse_blank_runs(text: &str) -> String {
     out.trim_matches('\n').to_string()
 }
 
-/// 連続する同一行を畳み、`  ┄ ×N` を付けて回数を示す。
+/// 連続する同一行を畳み、`  (xN)` を付けて回数を示す（ASCII のみ）。
 pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
     let mut out = Vec::new();
     let mut i = 0;
@@ -28,11 +28,34 @@ pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
         }
         let count = j - i;
         if count > 1 {
-            out.push(format!("{cur}  ┄ ×{count}"));
+            out.push(format!("{cur}  (x{count})"));
         } else {
             out.push(cur.to_string());
         }
         i = j;
+    }
+    out
+}
+
+/// 出現位置が離れていても同一行をまとめる（最初の出現順を保ち、2回以上は `  (xN)`）。
+/// 同じ警告が散発的に繰り返されるログ等で効く。
+pub fn dedup_all(lines: &[&str]) -> Vec<String> {
+    use std::collections::HashMap;
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for l in lines {
+        *counts.entry(l).or_insert(0) += 1;
+    }
+    let mut seen: HashMap<&str, ()> = HashMap::new();
+    let mut out = Vec::new();
+    for l in lines {
+        if seen.insert(l, ()).is_none() {
+            let c = counts[l];
+            if c > 1 {
+                out.push(format!("{l}  (x{c})"));
+            } else {
+                out.push((*l).to_string());
+            }
+        }
     }
     out
 }
@@ -219,5 +242,24 @@ mod tests {
         assert!(truncated);
         assert!(out.len() <= 5);
         assert!(out.iter().any(|l| l.contains("more lines")));
+    }
+
+    #[test]
+    fn dedup_consecutive_collapses_runs() {
+        let lines = vec!["a", "a", "a", "b", "a"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec!["a  (x3)".to_string(), "b".to_string(), "a".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_all_collapses_scattered_dups() {
+        let lines = vec!["warn", "info", "warn", "warn", "info"];
+        // 最初の出現順を保ち、各ユニーク行を1回・回数付き。
+        assert_eq!(
+            dedup_all(&lines),
+            vec!["warn  (x3)".to_string(), "info  (x2)".to_string()]
+        );
     }
 }

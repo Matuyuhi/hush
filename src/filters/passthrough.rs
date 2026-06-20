@@ -2,12 +2,10 @@
 //!
 //! - 標準出力＋標準エラーを結合
 //! - 連続空行の畳み込み
-//! - 連続する同一行の dedup（回数表示）
+//! - 同一行の dedup（離れていても畳む・回数表示）
 //! - 長すぎる場合は先頭＋末尾を表示し（中略マーカー）、原文は expand へ回す
 
-use super::common::{
-    collapse_blank_runs, combine_raw, dedup_consecutive, strip_ansi, truncate_head_tail,
-};
+use super::common::{collapse_blank_runs, combine_raw, dedup_all, strip_ansi, truncate_head_tail};
 use super::{FilterInput, FilterOutput};
 use crate::error::Result;
 
@@ -34,7 +32,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     // 圧縮: 空行畳み込み → 連続重複の dedup。
     let collapsed = collapse_blank_runs(&display);
     let lines: Vec<&str> = collapsed.lines().collect();
-    let deduped = dedup_consecutive(&lines);
+    let deduped = dedup_all(&lines);
 
     // 長ければ先頭＋末尾を残す（末尾のエラー/サマリを保持）。
     let (shown, truncated) = truncate_head_tail(deduped, MAX_LINES, HEAD, TAIL);
