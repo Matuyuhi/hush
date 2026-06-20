@@ -13,7 +13,8 @@ const TAIL: usize = 8;
 
 /// 明確に「通過/進捗」だけの行か（落としてよい）。失敗・サマリは決して落とさない。
 fn is_passing_noise(line: &str) -> bool {
-    let t = line.trim_start();
+    // 末尾空白に頑健にするため両端 trim。
+    let t = line.trim();
     // go test
     t.starts_with("=== RUN")
         || t.starts_with("=== PAUSE")
@@ -33,6 +34,8 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         if !text.is_empty() && !text.ends_with('\n') {
             text.push('\n');
         }
+        // combine_raw の "both non-empty" 挙動に合わせ、stderr の開始を1行で示す。
+        text.push_str("[stderr]\n");
         text.push_str(&stderr);
     }
     let orig_lines = text.lines().count();
