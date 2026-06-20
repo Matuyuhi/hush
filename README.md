@@ -113,6 +113,12 @@ cargo build --no-default-features   # core only; drops tree-sitter (the `ast` fe
 cargo run -- doctor
 ```
 
+A compression benchmark runs the filters over fixed sample inputs in
+`tests/fixtures/` (`cargo test --test compression`): it fails if any command's
+compaction ratio drops below a per-command floor, and writes a markdown report of
+the ratio per command. CI publishes that report to the job summary on every push
+to `main`, and posts it as a PR comment when the `compression-report` label is added.
+
 Releases are cut from `Cargo.toml`'s version: run the **Bump version** GitHub Action
 (patch/minor/major), merge the PR it opens, and `release.yml` builds the per-platform
 binaries, publishes a GitHub Release, and updates the Homebrew tap.

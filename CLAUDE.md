@@ -17,6 +17,7 @@ cargo fmt --check                  # CI enforces formatting
 cargo clippy --all-targets -- -D warnings   # CI denies warnings
 cargo run -- doctor                # prove the non-transmission gate (must print PASS)
 cargo run -- git status            # run any command through hush during dev
+cargo test --test compression      # compression-ratio benchmark/guard over tests/fixtures/
 ```
 
 CI (`ci.yml`) enforces, on macOS + Linux: fmt / clippy(-D warnings) / build / test /
@@ -46,6 +47,9 @@ conspire to keep:
   anything it returns the full original in `FilterOutput.original`; `filters::finalize` then
   stores it and appends the footer
   `[hush:<filter> id=<ID> lines=A->B - `hush expand <ID>` for full output]` (see `filters/render.rs`).
+  A compression benchmark (`tests/compression.rs`, via the `lib` target) runs every filter over
+  fixed samples in `tests/fixtures/` and fails if a command's ratio drops below a per-command
+  floor — when adding or changing a filter, add a fixture + a `CASES` entry there.
 
 - **Lazy expansion** (`store/`): the original output is saved content-addressed under
   `$XDG_DATA_HOME/hush` (`~/.local/share/hush`); `hush expand <id>` returns it byte-exact, so
