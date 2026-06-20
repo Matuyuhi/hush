@@ -9,10 +9,7 @@ pub fn collapse_blank_runs(text: &str) -> String {
         if blank && prev_blank {
             continue;
         }
-        if blank {
-            // 空行は純粋な \n に正規化する（空白文字を残さない）
-            // これにより、末尾の trim_matches('\n') で綺麗に消えるようになる
-        } else {
+        if !blank {
             out.push_str(line);
         }
         out.push('\n');
