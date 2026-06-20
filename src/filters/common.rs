@@ -286,4 +286,31 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn combine_raw_both_empty() {
+        assert_eq!(combine_raw(b"", b""), b"");
+    }
+
+    #[test]
+    fn combine_raw_stdout_only() {
+        assert_eq!(combine_raw(b"hello stdout", b""), b"hello stdout");
+    }
+
+    #[test]
+    fn combine_raw_stderr_only() {
+        assert_eq!(combine_raw(b"", b"hello stderr"), b"hello stderr");
+    }
+
+    #[test]
+    fn combine_raw_both_with_newline() {
+        let expected = b"hello stdout\n--- stderr ---\nhello stderr";
+        assert_eq!(combine_raw(b"hello stdout\n", b"hello stderr"), expected);
+    }
+
+    #[test]
+    fn combine_raw_both_without_newline() {
+        let expected = b"hello stdout\n--- stderr ---\nhello stderr";
+        assert_eq!(combine_raw(b"hello stdout", b"hello stderr"), expected);
+    }
 }
