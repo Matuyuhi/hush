@@ -122,7 +122,7 @@ pub fn group_paths_by_dir(paths: &[&str], threshold: usize) -> Vec<String> {
     let mut out = Vec::new();
     for (dir, members) in by_dir {
         if members.len() >= threshold {
-            out.push(format!("{dir} ({} files)", members.len()));
+            out.push(format!("{dir} ({} 件)", members.len()));
         } else {
             for m in members {
                 out.push(m.to_string());
@@ -314,6 +314,56 @@ mod tests {
                 String::new(),
             ]
         );
+    }
+
+    #[test]
+    fn group_paths_by_dir_under_threshold() {
+        let paths = vec!["src/a.rs", "src/b.rs"];
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec!["src/a.rs".to_string(), "src/b.rs".to_string()]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_over_threshold() {
+        let paths = vec!["src/a.rs", "src/b.rs", "src/c.rs"];
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec!["src/ (3 件)".to_string()]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_root_paths() {
+        let paths = vec!["a.rs", "b.rs"];
+        assert_eq!(group_paths_by_dir(&paths, 2), vec!["./ (2 件)".to_string()]);
+    }
+
+    #[test]
+    fn group_paths_by_dir_mixed() {
+        let paths = vec![
+            "src/a.rs",
+            "src/b.rs",
+            "test/a.rs",
+            "test/b.rs",
+            "test/c.rs",
+        ];
+        // BTreeMap is sorted by dir alphabetically
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec![
+                "src/a.rs".to_string(),
+                "src/b.rs".to_string(),
+                "test/ (3 件)".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_empty() {
+        let paths: Vec<&str> = vec![];
+        assert_eq!(group_paths_by_dir(&paths, 3), Vec::<String>::new());
     }
 
     #[test]
