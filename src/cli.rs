@@ -1,8 +1,8 @@
 //! clap による CLI 定義。
 //!
 //! `hush <command> [args...]` は外部サブコマンド扱いで Wrap に入る。
-//! hush 自身のサブコマンド（doctor / expand / read / gc）と衝突する名前の
-//! コマンドをラップしたい場合は、将来 `hush run -- <cmd>` を用意する想定。
+//! hush 自身のサブコマンド（doctor / expand / read / gc / stats / install ...）と
+//! 衝突する名前のコマンドをラップしたい場合は、将来 `hush run -- <cmd>` を用意する想定。
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -10,7 +10,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(
     name = "hush",
-    about = "出力を圧縮して LLM のトークン消費を減らす、絶対に外部送信しないプロキシ",
+    about = "Compress command output to cut LLM token usage — and physically never transmit it",
     version,
     arg_required_else_help = true
 )]
@@ -21,50 +21,53 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Cmd {
-    /// 非送信サンドボックスが効いているか実測検証する
+    /// Check that the non-transmission sandbox actually blocks the network
     Doctor,
 
-    /// 保存済みの原文を ID で取り出す
+    /// Print a stored original output by its id
     Expand {
-        /// `hush <cmd>` の出力フッタに表示される ID
+        /// The id shown in the footer of a compressed `hush <cmd>` output
         id: String,
     },
 
-    /// ファイルを読む（--signatures で AST シグネチャのみ表示）
+    /// Read a file (use --signatures to show only AST signatures)
     Read {
-        /// 対象ファイル
+        /// File to read
         path: PathBuf,
-        /// シグネチャのみ表示する（tree-sitter, feature=ast）
+        /// Show signatures only (tree-sitter, requires feature "ast")
         #[arg(long)]
         signatures: bool,
     },
 
-    /// 保存済み expand アーティファクトを掃除する
+    /// Clean up stored expand artifacts
     Gc {
-        /// この日数より古いものを削除（未指定なら現状の容量を表示）
+        /// Delete artifacts older than N days (omit to show current usage)
         #[arg(long)]
         days: Option<u64>,
     },
 
-    /// Claude Code に統合する（PostToolUse hook + HUSH.md + CLAUDE.md 追記）
+    /// Show how much output has been compressed so far
+    Stats,
+
+    /// Integrate with Claude Code (PostToolUse hook + HUSH.md + CLAUDE.md import)
     Install {
-        /// project(.claude/) ではなく user(~/.claude/) スコープに入れる
+        /// Install into the user scope (~/.claude/) instead of the project (.claude/)
         #[arg(long)]
         user: bool,
     },
 
-    /// hush install で入れた設定を撤去する
+    /// Remove what `hush install` set up
     Uninstall {
-        /// user(~/.claude/) スコープを対象にする
+        /// Target the user scope (~/.claude/)
         #[arg(long)]
         user: bool,
     },
 
-    /// Claude Code の PostToolUse hook 本体（内部用・stdin から JSON を受ける）
+    /// PostToolUse hook entry point (internal; reads hook JSON from stdin)
     #[command(hide = true)]
     Hook,
 
-    /// 任意のコマンドをラップ実行し、出力を圧縮して返す
+    /// Wrap an arbitrary command and return its compressed output
     #[command(external_subcommand)]
     Wrap(Vec<String>),
 }

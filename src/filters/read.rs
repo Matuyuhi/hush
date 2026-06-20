@@ -14,7 +14,7 @@ const HEAD: usize = 70;
 
 pub fn run_file(path: &Path, signatures: bool) -> Result<FilterOutput> {
     let bytes = std::fs::read(path)
-        .map_err(|e| Error::NotFound(format!("{} を読めません: {e}", path.display())))?;
+        .map_err(|e| Error::NotFound(format!("cannot read {}: {e}", path.display())))?;
 
     if signatures {
         return signatures_of(path, bytes);
@@ -43,7 +43,7 @@ fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
     match path.extension().and_then(|e| e.to_str()) {
         Some("rs") => crate::ast::rust::signatures(&bytes),
         other => Err(Error::Filter(format!(
-            "--signatures は現在 .rs のみ対応です（指定: {:?}）",
+            "--signatures currently supports only .rs files (got: {:?})",
             other.unwrap_or("")
         ))),
     }
@@ -52,6 +52,6 @@ fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
 #[cfg(not(feature = "ast"))]
 fn signatures_of(_path: &Path, _bytes: Vec<u8>) -> Result<FilterOutput> {
     Err(Error::Filter(
-        "--signatures は feature=ast を有効にしてビルドする必要があります".into(),
+        "--signatures requires building with the \"ast\" feature".into(),
     ))
 }

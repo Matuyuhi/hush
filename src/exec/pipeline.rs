@@ -15,7 +15,7 @@ use crate::sandbox;
 
 pub fn run_wrapped(argv: Vec<String>) -> Result<i32> {
     if argv.is_empty() {
-        return Err(Error::Msg("ラップするコマンドが指定されていません".into()));
+        return Err(Error::Msg("no command given to wrap".into()));
     }
 
     // 1. 実コマンドを実行して出力を全取得。

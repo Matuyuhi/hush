@@ -7,6 +7,6 @@ use crate::error::{Error, Result};
 
 pub fn deny_network() -> Result<()> {
     Err(Error::Sandbox(
-        "このプラットフォームでは非送信サンドボックスが未対応です".into(),
+        "the non-transmission sandbox is not supported on this platform".into(),
     ))
 }

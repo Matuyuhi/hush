@@ -18,12 +18,12 @@ pub struct Captured {
 pub fn run(argv: &[String]) -> Result<Captured> {
     let (program, rest) = argv
         .split_first()
-        .ok_or_else(|| Error::Msg("ラップするコマンドが指定されていません".into()))?;
+        .ok_or_else(|| Error::Msg("no command given to wrap".into()))?;
 
     let output = Command::new(program)
         .args(rest)
         .output()
-        .map_err(|e| Error::Msg(format!("コマンド `{program}` を起動できません: {e}")))?;
+        .map_err(|e| Error::Msg(format!("cannot launch command `{program}`: {e}")))?;
 
     let exit_code = exit_code_of(&output.status);
 

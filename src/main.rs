@@ -31,6 +31,7 @@ fn run(cmd: cli::Cmd) -> Result<i32> {
         cli::Cmd::Expand { id } => commands::expand::run(&id),
         cli::Cmd::Read { path, signatures } => commands::read::run(&path, signatures),
         cli::Cmd::Gc { days } => commands::gc::run(days),
+        cli::Cmd::Stats => commands::stats::run(),
         cli::Cmd::Install { user } => commands::install::run(user),
         cli::Cmd::Uninstall { user } => commands::install::uninstall(user),
         cli::Cmd::Hook => commands::hook::run(),

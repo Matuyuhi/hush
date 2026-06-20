@@ -27,9 +27,28 @@ pub struct Meta {
     pub cwd: String,
     pub created_unix: u64,
     pub exit_code: i32,
+    /// 原文のバイト数。
     pub byte_len: usize,
+    /// 原文の行数。
     pub line_count: usize,
+    /// 圧縮後本文のバイト数（フッタ除く）。旧フォーマットには無い。
+    #[serde(default)]
+    pub compact_bytes: usize,
+    /// 圧縮後に表示した行数。旧フォーマットには無い。
+    #[serde(default)]
+    pub compact_lines: usize,
     pub filter: String,
+}
+
+/// `Store::put` に渡すメタ情報（引数過多を避けるためのまとめ）。
+pub struct PutMeta<'a> {
+    pub command: &'a [String],
+    pub cwd: &'a str,
+    pub exit_code: i32,
+    pub filter: &'a str,
+    pub orig_lines: usize,
+    pub compact_bytes: usize,
+    pub compact_lines: usize,
 }
 
 pub struct Store {
@@ -41,42 +60,36 @@ impl Store {
     pub fn open() -> Result<Self> {
         let objects = paths::objects_dir()?;
         fs::create_dir_all(&objects)
-            .map_err(|e| Error::Store(format!("{} を作成できません: {e}", objects.display())))?;
+            .map_err(|e| Error::Store(format!("cannot create {}: {e}", objects.display())))?;
         Ok(Store { objects })
     }
 
     /// 原文を保存して ID を返す。同一内容が既にあれば書き込みをスキップ（dedup）。
-    pub fn put(
-        &self,
-        original: &[u8],
-        command: &[String],
-        cwd: &str,
-        exit_code: i32,
-        filter: &str,
-        line_count: usize,
-    ) -> Result<String> {
+    pub fn put(&self, original: &[u8], m: PutMeta) -> Result<String> {
         let id = id::content_id(original);
 
         // content-addressed なので「既存 = 同一内容」。create_new(O_EXCL) で原子的に
         // 作成し、AlreadyExists は dedup として成功扱い（TOCTOU 回避）。原文とメタを
         // 独立に書くので、片方だけ欠けた状態（クラッシュ等）も次回 put で自己修復される。
         write_new(&self.objects.join(&id), original)
-            .map_err(|e| Error::Store(format!("原文を書き込めません: {e}")))?;
+            .map_err(|e| Error::Store(format!("cannot write original: {e}")))?;
 
         let meta = Meta {
-            schema_version: 1,
+            schema_version: 2,
             id: id.clone(),
-            command: command.to_vec(),
-            cwd: cwd.to_string(),
+            command: m.command.to_vec(),
+            cwd: m.cwd.to_string(),
             created_unix: now_unix(),
-            exit_code,
+            exit_code: m.exit_code,
             byte_len: original.len(),
-            line_count,
-            filter: filter.to_string(),
+            line_count: m.orig_lines,
+            compact_bytes: m.compact_bytes,
+            compact_lines: m.compact_lines,
+            filter: m.filter.to_string(),
         };
         let json = serde_json::to_vec_pretty(&meta)?;
         write_new(&self.objects.join(format!("{id}.json")), &json)
-            .map_err(|e| Error::Store(format!("メタデータを書き込めません: {e}")))?;
+            .map_err(|e| Error::Store(format!("cannot write metadata: {e}")))?;
 
         Ok(id)
     }
@@ -88,9 +101,9 @@ impl Store {
         match fs::read(&obj) {
             Ok(b) => Ok(b),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Err(Error::NotFound(format!("ID {id} の原文が見つかりません")))
+                Err(Error::NotFound(format!("no stored original for id {id}")))
             }
-            Err(e) => Err(Error::Store(format!("原文を読み込めません: {e}"))),
+            Err(e) => Err(Error::Store(format!("cannot read original: {e}"))),
         }
     }
 
@@ -103,7 +116,7 @@ impl Store {
 /// パストラバーサル防止。ID は英数字のみ（content_id は hex なので満たす）。
 fn validate_id(id: &str) -> Result<()> {
     if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err(Error::NotFound(format!("不正な ID 形式: {id:?}")));
+        return Err(Error::NotFound(format!("invalid id: {id:?}")));
     }
     Ok(())
 }

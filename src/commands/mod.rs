@@ -8,3 +8,4 @@ pub mod gc;
 pub mod hook;
 pub mod install;
 pub mod read;
+pub mod stats;

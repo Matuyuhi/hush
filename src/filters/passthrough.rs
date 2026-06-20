@@ -36,7 +36,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     let shown_lines = shown.len();
     let compact = if shown.is_empty() {
-        "(出力なし)".to_string()
+        "(no output)".to_string()
     } else {
         shown.join("\n")
     };

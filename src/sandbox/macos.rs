@@ -28,7 +28,7 @@ unsafe extern "C" {
 
 pub fn deny_network() -> Result<()> {
     let profile = CString::new(PROFILE)
-        .map_err(|e| Error::Sandbox(format!("プロファイル文字列が不正です: {e}")))?;
+        .map_err(|e| Error::Sandbox(format!("invalid sandbox profile string: {e}")))?;
     let mut errbuf: *mut c_char = ptr::null_mut();
 
     // flags=0 → profile は SBPL テキスト。
@@ -40,13 +40,13 @@ pub fn deny_network() -> Result<()> {
 
     // 失敗: errorbuf にメッセージが入る場合があるので回収して解放する。
     let msg = if errbuf.is_null() {
-        format!("sandbox_init が失敗しました (rc={rc})")
+        format!("sandbox_init failed (rc={rc})")
     } else {
         let m = unsafe { CStr::from_ptr(errbuf) }
             .to_string_lossy()
             .into_owned();
         unsafe { sandbox_free_error(errbuf) };
-        format!("sandbox_init が失敗しました (rc={rc}): {m}")
+        format!("sandbox_init failed (rc={rc}): {m}")
     };
     Err(Error::Sandbox(msg))
 }
