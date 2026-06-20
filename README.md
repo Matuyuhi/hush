@@ -33,6 +33,41 @@ Cargo.lock  (+480 -0)
   `cargo test`, and `read` (tree-sitter signatures) each get a tailored compaction;
   anything else falls back to a generic one.
 
+## Compression
+
+Measured compaction ratio per command over fixed sample inputs (`tests/fixtures/`);
+bytes are raw stdout+stderr vs the compacted body (the `expand` footer is excluded).
+Regenerated from the fixtures and refreshed automatically by CI after each merge to `main`.
+
+<!-- compression-report:start -->
+```
+              hush compression report
+---------------------------------------------------
+                13 sample commands
+---------------------------------------------------
+  original      112 KB   2,088 lines   ~28.1K tok
+  compressed   16.6 KB     286 lines   ~ 4.1K tok
+  saved        96.0 KB       (85.3%)   ~24.0K tok
+---------------------------------------------------
+  by command
+  ls                        57.2 KB -> 1.8 KB   97%
+  git log                   12.8 KB -> 1.5 KB   88%
+  grep                       9.8 KB ->  868 B   91%
+  build log (passthrough)    9.7 KB -> 2.2 KB   78%
+  pytest                     7.0 KB -> 4.1 KB   41%
+  go test                    2.8 KB ->  294 B   89%
+  docker ps                  6.5 KB -> 4.1 KB   37%
+  cargo test                 2.5 KB ->  331 B   87%
+  git diff                   2.0 KB ->   94 B   95%
+  find                        779 B ->  258 B   67%
+  git status                  883 B ->  583 B   34%
+  cargo build                 390 B ->  183 B   53%
+  cargo build (cargo err)     225 B ->  200 B   11%
+---------------------------------------------------
+     ~tok = bytes/4, from fixed sample inputs
+```
+<!-- compression-report:end -->
+
 ## Install
 
 Homebrew (prebuilt binary, no compile):
@@ -96,31 +131,6 @@ hush <command>:
   is what stops transmission.
 - **The store** is content-addressed; identical outputs dedupe, and `expand` is byte-
   exact. `hush gc [--days N]` prunes it.
-
-## Compression
-
-Measured compaction ratio per command over fixed sample inputs (`tests/fixtures/`);
-bytes are raw stdout+stderr vs the compacted body (the `expand` footer is excluded).
-Regenerated from the fixtures and refreshed automatically by CI after each merge to `main`.
-
-<!-- compression-report:start -->
-| command | filter | bytes | compact | ratio | lines |
-|---|---|--:|--:|--:|--:|
-| git status | git-status | 883 | 583 | 34% | 27 -> 22 |
-| git diff | git-diff | 2032 | 94 | 95% | 69 -> 4 |
-| git log | git-log | 12811 | 1541 | 88% | 363 -> 30 |
-| cargo build | cargo-build | 390 | 183 | 53% | 16 -> 4 |
-| cargo build (cargo err) | cargo-build | 225 | 200 | 11% | 7 -> 6 |
-| cargo test | cargo-test | 2464 | 331 | 87% | 49 -> 6 |
-| go test | test | 2783 | 294 | 89% | 100 -> 8 |
-| pytest | test | 6957 | 4111 | 41% | 95 -> 59 |
-| docker ps | tabular | 6503 | 4121 | 37% | 43 -> 28 |
-| grep | grep | 9788 | 868 | 91% | 138 -> 37 |
-| find | find | 779 | 258 | 67% | 39 -> 14 |
-| ls | ls | 57214 | 1809 | 97% | 927 -> 31 |
-| build log (passthrough) | passthrough | 9708 | 2157 | 78% | 215 -> 37 |
-| **total** | | **112537** | **16550** | **85%** | |
-<!-- compression-report:end -->
 
 ## Platform support
 

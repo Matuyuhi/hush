@@ -15,6 +15,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use hush::filters::{self, FilterInput};
+use hush::ui::{self, Row, commas, human_bytes, human_count};
 
 struct Case {
     /// 表示するコマンド名。
@@ -175,47 +176,107 @@ fn measure(c: &Case) -> Measured {
     }
 }
 
-/// markdown の表だけ（README にもこの部分を埋め込むため独立させる）。
-fn report_table(rows: &[Measured]) -> String {
-    let mut t = String::new();
-    t.push_str("| command | filter | bytes | compact | ratio | lines |\n");
-    t.push_str("|---|---|--:|--:|--:|--:|\n");
-    let mut tot_o = 0usize;
-    let mut tot_c = 0usize;
-    for m in rows {
-        tot_o += m.orig_bytes;
-        tot_c += m.compact_bytes;
-        t.push_str(&format!(
-            "| {} | {} | {} | {} | {:.0}% | {} -> {} |\n",
-            m.cmd,
-            m.filter,
-            m.orig_bytes,
-            m.compact_bytes,
-            m.ratio * 100.0,
-            m.orig_lines,
-            m.shown_lines,
-        ));
-    }
-    let tot_ratio = if tot_o > 0 {
-        tot_o.saturating_sub(tot_c) as f64 / tot_o as f64 * 100.0
+/// 概算トークン（`hush stats` と同じ 1 token ~= 4 bytes）。
+fn approx_tokens(bytes: u64) -> u64 {
+    bytes / 4
+}
+
+/// `hush stats` と同じ枠付きブロックでレポートを描画する（README/job summary 共通）。
+/// 罫線・桁揃えは `ui` を再利用し、見た目を `hush stats` に合わせる。
+fn report_block(rows: &[Measured]) -> String {
+    let orig_b: u64 = rows.iter().map(|m| m.orig_bytes as u64).sum();
+    let comp_b: u64 = rows.iter().map(|m| m.compact_bytes as u64).sum();
+    let orig_l: u64 = rows.iter().map(|m| m.orig_lines as u64).sum();
+    let comp_l: u64 = rows.iter().map(|m| m.shown_lines as u64).sum();
+    let saved_b = orig_b.saturating_sub(comp_b);
+    let ratio = if orig_b > 0 {
+        100.0 * saved_b as f64 / orig_b as f64
     } else {
         0.0
     };
-    t.push_str(&format!(
-        "| **total** | | **{tot_o}** | **{tot_c}** | **{tot_ratio:.0}%** | |\n"
+
+    // --- totals block: (label, bytes, middle, tokens) ---
+    let totals = [
+        (
+            "original",
+            human_bytes(orig_b),
+            format!("{} lines", commas(orig_l)),
+            human_count(approx_tokens(orig_b)),
+        ),
+        (
+            "compressed",
+            human_bytes(comp_b),
+            format!("{} lines", commas(comp_l)),
+            human_count(approx_tokens(comp_b)),
+        ),
+        (
+            "saved",
+            human_bytes(saved_b),
+            format!("({ratio:.1}%)"),
+            human_count(approx_tokens(saved_b)),
+        ),
+    ];
+    let tw_label = totals.iter().map(|t| t.0.len()).max().unwrap_or(0);
+    let tw_bytes = totals.iter().map(|t| t.1.len()).max().unwrap_or(0);
+    let tw_mid = totals.iter().map(|t| t.2.len()).max().unwrap_or(0);
+    let tw_tok = totals.iter().map(|t| t.3.len()).max().unwrap_or(0);
+    let total_lines: Vec<String> = totals
+        .iter()
+        .map(|(l, b, m, t)| {
+            format!("  {l:<tw_label$}   {b:>tw_bytes$}   {m:>tw_mid$}   ~{t:>tw_tok$} tok")
+        })
+        .collect();
+
+    // --- by-command block: (name, original, compressed, percent) ---
+    // 削減バイトの大きい順（hush stats の by filter と同じ並び）。
+    let mut sorted: Vec<&Measured> = rows.iter().collect();
+    sorted.sort_by_key(|m| std::cmp::Reverse(m.orig_bytes.saturating_sub(m.compact_bytes)));
+    let crows: Vec<(String, String, String, String)> = sorted
+        .iter()
+        .map(|m| {
+            (
+                m.cmd.to_string(),
+                human_bytes(m.orig_bytes as u64),
+                human_bytes(m.compact_bytes as u64),
+                format!("{:.0}%", m.ratio * 100.0),
+            )
+        })
+        .collect();
+    let cw_name = crows.iter().map(|r| r.0.len()).max().unwrap_or(0);
+    let cw_ob = crows.iter().map(|r| r.1.len()).max().unwrap_or(0);
+    let cw_cb = crows.iter().map(|r| r.2.len()).max().unwrap_or(0);
+    let cw_pct = crows.iter().map(|r| r.3.len()).max().unwrap_or(0);
+    let cmd_lines: Vec<String> = crows
+        .iter()
+        .map(|(n, ob, cb, p)| {
+            format!("  {n:<cw_name$}   {ob:>cw_ob$} -> {cb:>cw_cb$}   {p:>cw_pct$}")
+        })
+        .collect();
+
+    let mut block = vec![
+        Row::Center("hush compression report".to_string()),
+        Row::Rule,
+        Row::Center(format!("{} sample commands", rows.len())),
+        Row::Rule,
+    ];
+    block.extend(total_lines.into_iter().map(Row::Line));
+    block.push(Row::Rule);
+    block.push(Row::Line("  by command".to_string()));
+    block.extend(cmd_lines.into_iter().map(Row::Line));
+    block.push(Row::Rule);
+    block.push(Row::Center(
+        "~tok = bytes/4, from fixed sample inputs".to_string(),
     ));
-    t
+
+    ui::render_to_string(&block)
 }
 
 fn build_report(rows: &[Measured]) -> String {
-    let mut md = String::new();
-    md.push_str("## hush compression report\n\n");
-    md.push_str(
-        "Compaction ratio per command on fixed sample inputs (`tests/fixtures/`). \
-         Bytes = raw stdout+stderr vs compacted body (expand footer excluded).\n\n",
-    );
-    md.push_str(&report_table(rows));
-    md
+    // README と同じフレーム表示を code fence で包んで md 化（PR コメント/job summary 用）。
+    format!(
+        "## hush compression report\n\n```\n{}\n```\n",
+        report_block(rows)
+    )
 }
 
 #[test]
@@ -269,7 +330,8 @@ fn sync_readme() {
         return;
     }
     let rows: Vec<Measured> = CASES.iter().map(measure).collect();
-    let table = report_table(&rows);
+    // フレーム表示を code fence で包む（markdown 内で桁揃えを保つため）。
+    let block = format!("```\n{}\n```", report_block(&rows));
 
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("README.md");
     let readme = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read README: {e}"));
@@ -283,9 +345,9 @@ fn sync_readme() {
     assert!(start < end, "README markers are out of order");
 
     let updated = format!(
-        "{}\n{}{}",
+        "{}\n{}\n{}",
         &readme[..start + README_START.len()],
-        table,
+        block,
         &readme[end..]
     );
     if updated != readme {

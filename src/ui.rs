@@ -15,10 +15,16 @@ pub enum Row {
 }
 
 /// 行群を枠付きブロックとして出力する。
+pub fn render(rows: &[Row]) {
+    println!("{}", render_to_string(rows));
+}
+
+/// 行群を枠付きブロックの文字列にする（末尾改行なし）。
 ///
 /// 幅は Line/Center 行の最大幅。罫線は常にコンテンツ全体に伸び、
 /// どの行も溢れない（= 数値が巨大でも名前が長くてもレイアウトが崩れない）。
-pub fn render(rows: &[Row]) {
+/// 端末出力は `render`、文字列が要る用途（README 埋め込み等）はこちらを使う。
+pub fn render_to_string(rows: &[Row]) -> String {
     let width = rows
         .iter()
         .filter_map(|r| match r {
@@ -28,13 +34,14 @@ pub fn render(rows: &[Row]) {
         .max()
         .unwrap_or(0);
     let bar = "-".repeat(width);
-    for r in rows {
-        match r {
-            Row::Rule => println!("{bar}"),
-            Row::Line(s) => println!("{s}"),
-            Row::Center(s) => println!("{}", center(s, width)),
-        }
-    }
+    rows.iter()
+        .map(|r| match r {
+            Row::Rule => bar.clone(),
+            Row::Line(s) => s.clone(),
+            Row::Center(s) => center(s, width),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// `s` を `width` カラムの中央に寄せる（左側を空白で詰める。ASCII 前提）。
