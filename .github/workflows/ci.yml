@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-24.04, macos-26]
     steps:
       # サードパーティ Action は供給網を増やすため、公式の checkout のみ使用。
-      # Rust はランナー同梱の rustup を使う。
-      - uses: actions/checkout@v4
+      # 改竄対策で commit SHA 固定（コメントにバージョン）。Rust はランナー同梱の rustup。
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust
         run: |

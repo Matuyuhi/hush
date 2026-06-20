@@ -9,7 +9,7 @@
 //!   objects/<id>.json   メタデータ
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -56,26 +56,28 @@ impl Store {
         line_count: usize,
     ) -> Result<String> {
         let id = id::content_id(original);
-        let obj = self.objects.join(&id);
-        if !obj.exists() {
-            fs::write(&obj, original)
-                .map_err(|e| Error::Store(format!("原文を書き込めません: {e}")))?;
-            let meta = Meta {
-                schema_version: 1,
-                id: id.clone(),
-                command: command.to_vec(),
-                cwd: cwd.to_string(),
-                created_unix: now_unix(),
-                exit_code,
-                byte_len: original.len(),
-                line_count,
-                filter: filter.to_string(),
-            };
-            let meta_path = self.objects.join(format!("{id}.json"));
-            let json = serde_json::to_vec_pretty(&meta)?;
-            fs::write(&meta_path, json)
-                .map_err(|e| Error::Store(format!("メタデータを書き込めません: {e}")))?;
-        }
+
+        // content-addressed なので「既存 = 同一内容」。create_new(O_EXCL) で原子的に
+        // 作成し、AlreadyExists は dedup として成功扱い（TOCTOU 回避）。原文とメタを
+        // 独立に書くので、片方だけ欠けた状態（クラッシュ等）も次回 put で自己修復される。
+        write_new(&self.objects.join(&id), original)
+            .map_err(|e| Error::Store(format!("原文を書き込めません: {e}")))?;
+
+        let meta = Meta {
+            schema_version: 1,
+            id: id.clone(),
+            command: command.to_vec(),
+            cwd: cwd.to_string(),
+            created_unix: now_unix(),
+            exit_code,
+            byte_len: original.len(),
+            line_count,
+            filter: filter.to_string(),
+        };
+        let json = serde_json::to_vec_pretty(&meta)?;
+        write_new(&self.objects.join(format!("{id}.json")), &json)
+            .map_err(|e| Error::Store(format!("メタデータを書き込めません: {e}")))?;
+
         Ok(id)
     }
 
@@ -111,4 +113,18 @@ fn now_unix() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+/// O_EXCL で新規作成して書き込む。既存(AlreadyExists)は dedup として成功扱い。
+fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+    {
+        Ok(mut f) => f.write_all(bytes),
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(e) => Err(e),
+    }
 }

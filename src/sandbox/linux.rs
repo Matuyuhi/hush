@@ -24,6 +24,10 @@ use crate::error::{Error, Result};
 const ARCH: TargetArch = TargetArch::x86_64;
 #[cfg(target_arch = "aarch64")]
 const ARCH: TargetArch = TargetArch::aarch64;
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+compile_error!(
+    "hush の Linux 非送信ゲートは現在 x86_64 / aarch64 のみ対応です（seccomp BPF の TargetArch 未定義）"
+);
 
 pub fn deny_network() -> Result<()> {
     // socket(domain, type, protocol) の domain (arg0) を見て、inet 系なら拒否する。
