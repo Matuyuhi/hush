@@ -1,44 +1,52 @@
-# Homebrew 配布手順
+# Homebrew 配布
 
-`hush` は **ソースビルド方式**で配布する。バイナリのクロスコンパイル・ホスティング・
-署名が不要で最も軽い。利用者の環境で `cargo install` が走る（Homebrew が rust を
-ビルド時依存として導入する）。
+`hush` は **prebuilt binary 方式**で配布する（tap の既存 formula と統一）。
+利用者はコンパイル不要で即インストールできる。
 
 tap: <https://github.com/Matuyuhi/homebrew-tools>
 
+## 仕組み
+
+`.github/workflows/release.yml` が `v*` タグ push をトリガに自動で:
+
+1. 4 ターゲットをネイティブビルド
+   - `macos-26`（arm）→ `aarch64-apple-darwin` と `x86_64-apple-darwin`（クロス）
+   - `ubuntu-24.04` → `x86_64-linux`
+   - `ubuntu-24.04-arm` → `aarch64-linux`
+2. 各バイナリを `hush-<target>.tar.gz` にして GitHub Release に添付
+3. `packaging/homebrew/hush.rb`（テンプレート）の `__VERSION__` と各 `__SHA_*__` を実値に差し替え、
+   tap の `Formula/hush.rb` を更新してコミット/プッシュ
+
+## 一度だけの準備: シークレット
+
+tap への自動コミットに PAT が必要。
+
+1. GitHub の Fine-grained PAT を発行（リポジトリ `Matuyuhi/homebrew-tools` のみ、`Contents: Read and write`）
+2. hush リポジトリの Settings → Secrets and variables → Actions に
+   `HOMEBREW_TAP_TOKEN` として登録
+
+未設定でもビルド & Release までは走る（tap 更新だけスキップ）。
+
 ## リリース手順
 
-1. バージョンを上げる
-   - `Cargo.toml` の `version` を更新し、`cargo build`（`Cargo.lock` を更新・コミット）。
-   - **`Cargo.lock` は必ずコミットする**（formula が `--locked` でビルドするため）。
+```sh
+# バージョンを上げて Cargo.lock も更新・コミット（main 上で）
+git tag v0.1.0
+git push origin v0.1.0
+```
 
-2. タグを打って push
-   ```sh
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-   GitHub がソース tarball を自動生成する:
-   `https://github.com/Matuyuhi/hush/archive/refs/tags/v0.1.0.tar.gz`
+あとは release.yml が Release 添付と tap 更新まで行う。
 
-3. tarball の sha256 を計算
-   ```sh
-   curl -fsSL https://github.com/Matuyuhi/hush/archive/refs/tags/v0.1.0.tar.gz \
-     | shasum -a 256
-   ```
+## 動作確認
 
-4. tap の formula を更新
-   - `homebrew-tools` の `Formula/hush.rb` に本ディレクトリの `hush.rb` を反映。
-   - `url` のバージョンと `sha256` を 2〜3 の値に差し替えてコミット・push。
+```sh
+brew tap Matuyuhi/tools
+brew install hush            # = Matuyuhi/tools/hush
+hush doctor                  # 非送信サンドボックスの実測
+```
 
-5. 動作確認
-   ```sh
-   brew tap Matuyuhi/tools
-   brew install hush          # = Matuyuhi/tools/hush
-   hush doctor                # 非送信サンドボックスの実測（手元で確認）
-   ```
+## メモ
 
-## 将来の自動化（任意・後回しで良い）
-
-タグ push をトリガに sha256 を計算して tap の formula を自動更新する GitHub Actions も
-組める。tap リポジトリへの書き込み権を持つ PAT（`HOMEBREW_TAP_TOKEN` 等のシークレット）が
-必要になるため、必要になった段階で追加する。
+- macOS は arm ランナー1種で両 arch をビルドする（`x86_64-apple-darwin` はクロス。
+  tree-sitter の C も含めてビルド可能なことを確認済み）。
+- Linux arm は `ubuntu-24.04-arm` ネイティブランナーを使う（クロス不要）。
