@@ -55,8 +55,6 @@ jobs:
 
       # main push: README の表を再生成し、job summary に掲示。差分があれば更新 PR を開く。
       # GITHUB_TOKEN が作る PR は further workflow を起動しない（無限ループしない）。
-      # 自動 PR を機能させるにはリポジトリ設定の
-      # 「Allow GitHub Actions to create and approve pull requests」を有効にすること。
       - name: Sync report to README + summary (push to main)
         if: github.event_name == 'push'
         env:
