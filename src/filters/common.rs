@@ -93,3 +93,76 @@ pub fn combine_raw(stdout: &[u8], stderr: &[u8]) -> Vec<u8> {
     v.extend_from_slice(stderr);
     v
 }
+
+/// ANSI エスケープシーケンス（色など）を除去する。色コードはトークンの純粋ノイズ。
+/// CSI (`ESC [ ... 終端 0x40-0x7E`) と OSC (`ESC ] ... BEL`/`ESC \`) を落とす。
+pub fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '\x1b' {
+            out.push(c);
+            continue;
+        }
+        match chars.peek() {
+            Some('[') => {
+                chars.next(); // '[' を消費
+                // パラメータ/中間バイトを読み飛ばし、終端バイト (0x40-0x7E) で止める。
+                for d in chars.by_ref() {
+                    if ('\x40'..='\x7e').contains(&d) {
+                        break;
+                    }
+                }
+            }
+            Some(']') => {
+                chars.next(); // ']' を消費
+                // OSC は BEL もしくは ST (ESC \) でのみ終端する。それ以外の ESC は
+                // payload 内とみなして読み飛ばしを継続（途中の ESC で誤終端しない）。
+                while let Some(d) = chars.next() {
+                    if d == '\x07' {
+                        break;
+                    }
+                    if d == '\x1b' && chars.peek() == Some(&'\\') {
+                        chars.next();
+                        break;
+                    }
+                }
+            }
+            // その他の単純なエスケープは次の1文字だけ落とす。
+            Some(_) => {
+                chars.next();
+            }
+            None => {}
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_ansi;
+
+    #[test]
+    fn strip_ansi_removes_csi_color() {
+        assert_eq!(strip_ansi("\x1b[31mred\x1b[0m"), "red");
+        assert_eq!(strip_ansi("\x1b[1;32mok\x1b[0m done"), "ok done");
+    }
+
+    #[test]
+    fn strip_ansi_keeps_plain_text() {
+        assert_eq!(strip_ansi("plain text 123"), "plain text 123");
+        assert_eq!(strip_ansi("a\nb\tc"), "a\nb\tc");
+    }
+
+    #[test]
+    fn strip_ansi_handles_osc_and_trailing_esc() {
+        // OSC (タイトル設定など) は丸ごと消える（BEL 終端）。
+        assert_eq!(strip_ansi("\x1b]0;title\x07keep"), "keep");
+        // ST (ESC \) 終端の OSC も消える。
+        assert_eq!(strip_ansi("\x1b]0;title\x1b\\keep"), "keep");
+        // payload 内の単独 ESC では終端せず、残りが漏れない。
+        assert_eq!(strip_ansi("\x1b]0;a\x1bb\x07keep"), "keep");
+        // 中途半端な末尾 ESC で無限ループ/panic しない。
+        assert_eq!(strip_ansi("text\x1b"), "text");
+    }
+}
