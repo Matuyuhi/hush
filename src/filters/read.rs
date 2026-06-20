@@ -39,7 +39,8 @@ pub fn run_file(path: &Path, signatures: bool) -> Result<FilterOutput> {
 
 #[cfg(feature = "ast")]
 fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
-    // 言語は拡張子で振り分け（rs / py / go / ts/tsx/js/jsx）。ast::signatures が判定。
+    // 言語は拡張子で振り分け（rs / py / go / ts / tsx / js / jsx / mjs / cjs）。
+    // 実際の対応判定は ast::signatures が行う。
     crate::ast::signatures(path, &bytes)
 }
 

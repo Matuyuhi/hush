@@ -99,7 +99,8 @@ pub fn signatures(path: &Path, src: &[u8]) -> Result<FilterOutput> {
         .to_ascii_lowercase();
     let spec = spec_for(&ext).ok_or_else(|| {
         Error::Filter(format!(
-            "--signatures: unsupported file type {ext:?} (supported: rs, py, go, ts/tsx/js/jsx)"
+            "--signatures: unsupported file type {ext:?} \
+             (supported: rs, py, go, ts, tsx, js, jsx, mjs, cjs)"
         ))
     })?;
 
@@ -229,6 +230,23 @@ mod tests {
         assert!(out.contains("function foo(a: number): number"));
         assert!(out.contains("class C"));
         assert!(out.contains("interface I"));
+    }
+
+    #[test]
+    fn javascript_signatures() {
+        // TS 文法でプレーン JS も解釈できる。
+        let out = sigs(
+            "x.js",
+            "function foo(a) { return a; }\nclass C { m() {} }\n",
+        );
+        assert!(out.contains("function foo(a)"));
+        assert!(out.contains("class C"));
+    }
+
+    #[test]
+    fn tsx_signatures() {
+        let out = sigs("x.tsx", "export function App(): number { return 1; }\n");
+        assert!(out.contains("function App(): number"));
     }
 
     #[test]
