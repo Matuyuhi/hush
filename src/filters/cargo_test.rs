@@ -58,7 +58,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     let shown_lines = shown.len();
     let compact = if shown.is_empty() {
-        "(テスト出力なし)".to_string()
+        "(no test output)".to_string()
     } else {
         shown.join("\n")
     };

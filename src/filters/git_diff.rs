@@ -65,7 +65,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         return passthrough::run(input);
     }
 
-    let header = format!("{} ファイル変更 (+{total_add} -{total_del}):", files.len());
+    let header = format!("{} files changed (+{total_add} -{total_del}):", files.len());
     let mut out = Vec::with_capacity(files.len() + 1);
     out.push(header);
     out.extend(files);

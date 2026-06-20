@@ -17,7 +17,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     let shown_lines = shown.len();
     let compact = if shown.is_empty() {
-        "(空)".to_string()
+        "(empty)".to_string()
     } else {
         shown.join("\n")
     };

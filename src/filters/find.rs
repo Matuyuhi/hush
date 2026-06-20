@@ -16,7 +16,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     if paths.len() <= RAW_LIMIT {
         let shown_lines = paths.len();
         let compact = if paths.is_empty() {
-            "(該当なし)".to_string()
+            "(no matches)".to_string()
         } else {
             paths.join("\n")
         };
@@ -35,7 +35,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     }
 
     let grouped = group_paths_by_dir(&paths, DIR_THRESHOLD);
-    let mut out = vec![format!("{} 件:", paths.len())];
+    let mut out = vec![format!("{} paths:", paths.len())];
     out.extend(grouped);
     let (shown, _truncated) = truncate_head(out, 80, 70);
     let shown_lines = shown.len();

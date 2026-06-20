@@ -13,15 +13,15 @@ use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
 
-/// モデルに読ませる使い方ガイド（毎セッション読まれるので簡潔に）。
-const HUSH_MD: &str = "# hush — コマンド出力の圧縮（このプロジェクト）\n\
+/// Model-facing usage guide (read every session, so keep it short).
+const HUSH_MD: &str = "# hush — compressed command output (this project)\n\
 \n\
-このプロジェクトでは Bash の出力が hush によって自動圧縮されることがある（PostToolUse hook）。\n\
+Bash output in this project may be auto-compressed by hush (a PostToolUse hook).\n\
 \n\
-- 圧縮された出力は末尾に `[hush:<filter> id=<ID> lines=A→B · hush expand <ID> で全文]` が付く。\n\
-- **全文が必要なら `hush expand <ID>` を実行**すれば原文を完全復元できる（情報は捨てていない）。\n\
-- 明示的に使うこともできる: `hush git status` / `hush git diff` / `hush read <file> --signatures` / `hush grep ...` など。\n\
-- hush は設計上いかなるデータも外部送信しない（`hush doctor` で検証できる）。\n";
+- A compressed result ends with a footer like `[hush:<filter> id=<ID> lines=A->B · hush expand <ID> for full output]`.\n\
+- **If you need the full output, run `hush expand <ID>`** — nothing is discarded; the original is restored verbatim.\n\
+- You can also call hush directly: `hush git status` / `hush git diff` / `hush read <file> --signatures` / `hush grep ...`.\n\
+- hush never sends any data off the machine by design (verify with `hush doctor`).\n";
 
 const IMPORT_MARKER: &str = "<!-- hush -->";
 
@@ -37,7 +37,7 @@ fn layout(user: bool) -> Result<Layout> {
     if user {
         let home = std::env::var_os("HOME")
             .filter(|h| !h.is_empty())
-            .ok_or_else(|| Error::Msg("HOME が未設定です".into()))?;
+            .ok_or_else(|| Error::Msg("HOME is not set".into()))?;
         let cd = PathBuf::from(home).join(".claude");
         Ok(Layout {
             settings: cd.join("settings.json"),
@@ -48,7 +48,7 @@ fn layout(user: bool) -> Result<Layout> {
         })
     } else {
         let cwd = std::env::current_dir()
-            .map_err(|e| Error::Msg(format!("カレントディレクトリ取得失敗: {e}")))?;
+            .map_err(|e| Error::Msg(format!("cannot get current directory: {e}")))?;
         let cd = cwd.join(".claude");
         Ok(Layout {
             settings: cd.join("settings.json"),
@@ -63,7 +63,7 @@ fn layout(user: bool) -> Result<Layout> {
 /// settings.json に書く hook コマンド（hush の絶対パス + " hook"）。
 fn hook_command() -> Result<String> {
     let exe = std::env::current_exe()
-        .map_err(|e| Error::Msg(format!("実行ファイルパス取得失敗: {e}")))?;
+        .map_err(|e| Error::Msg(format!("cannot get executable path: {e}")))?;
     let p = exe.to_string_lossy().into_owned();
     // パスに空白が含まれてもよう単一引用符で囲む（単一引用符を含む稀なパスは素のまま）。
     if p.contains('\'') {
@@ -76,16 +76,17 @@ fn hook_command() -> Result<String> {
 pub fn run(user: bool) -> Result<i32> {
     let lay = layout(user)?;
     fs::create_dir_all(&lay.claude_dir)
-        .map_err(|e| Error::Msg(format!("{} 作成失敗: {e}", lay.claude_dir.display())))?;
+        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
 
-    fs::write(&lay.hush_md, HUSH_MD).map_err(|e| Error::Msg(format!("HUSH.md 書込失敗: {e}")))?;
+    fs::write(&lay.hush_md, HUSH_MD)
+        .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
 
     let cmd = hook_command()?;
     let added_hook = install_hook(&lay.settings, &cmd)?;
     let added_import = add_import(&lay.claude_md, &lay.import_line)?;
 
     println!(
-        "hush install 完了 ({} スコープ)",
+        "hush install: done ({} scope)",
         if user { "user" } else { "project" }
     );
     println!("  HUSH.md       : {}", lay.hush_md.display());
@@ -93,24 +94,24 @@ pub fn run(user: bool) -> Result<i32> {
         "  settings.json : {} ({})",
         lay.settings.display(),
         if added_hook {
-            "PostToolUse hook を追加"
+            "added PostToolUse hook"
         } else {
-            "既に設定済み"
+            "already configured"
         }
     );
     println!(
         "  CLAUDE.md     : {} ({})",
         lay.claude_md.display(),
         if added_import {
-            format!("{} を追記", lay.import_line)
+            format!("added {}", lay.import_line)
         } else {
-            "既に追記済み".to_string()
+            "already present".to_string()
         }
     );
     println!("  hook command  : {cmd}");
     println!();
-    println!("※ 反映は次の Claude Code セッションから。撤去は `hush uninstall`。");
-    println!("※ hush の場所を変えたら（brew install 等）再度 `hush install` を実行してください。");
+    println!("note: takes effect in the next Claude Code session. remove with `hush uninstall`.");
+    println!("note: if hush moves (e.g. after brew install), run `hush install` again.");
     Ok(0)
 }
 
@@ -120,27 +121,27 @@ pub fn uninstall(user: bool) -> Result<i32> {
     let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
 
     println!(
-        "hush uninstall 完了 ({} スコープ)",
+        "hush uninstall: done ({} scope)",
         if user { "user" } else { "project" }
     );
     println!(
         "  settings.json : {}",
         if removed_hook {
-            "hook を除去"
+            "removed hook"
         } else {
-            "hush hook は無し"
+            "no hush hook"
         }
     );
     println!(
         "  CLAUDE.md     : {}",
         if removed_import {
-            "@import を除去"
+            "removed @import"
         } else {
-            "@import は無し"
+            "no @import"
         }
     );
     println!(
-        "  HUSH.md は残しています（不要なら手動削除）: {}",
+        "  HUSH.md       : left in place (delete manually if unwanted): {}",
         lay.hush_md.display()
     );
     Ok(0)
@@ -170,15 +171,15 @@ fn install_hook(path: &Path, hook_cmd: &str) -> Result<bool> {
     let mut root = read_json(path)?;
     let obj = root
         .as_object_mut()
-        .ok_or_else(|| Error::Msg(format!("{} がオブジェクトではありません", path.display())))?;
+        .ok_or_else(|| Error::Msg(format!("{} is not a JSON object", path.display())))?;
     let hooks = obj.entry("hooks").or_insert_with(|| json!({}));
     let hooks_obj = hooks
         .as_object_mut()
-        .ok_or_else(|| Error::Msg("settings.json の hooks がオブジェクトではありません".into()))?;
+        .ok_or_else(|| Error::Msg("settings.json: hooks is not an object".into()))?;
     let post = hooks_obj.entry("PostToolUse").or_insert_with(|| json!([]));
     let arr = post
         .as_array_mut()
-        .ok_or_else(|| Error::Msg("hooks.PostToolUse が配列ではありません".into()))?;
+        .ok_or_else(|| Error::Msg("settings.json: hooks.PostToolUse is not an array".into()))?;
 
     if arr.iter().any(entry_has_hush_hook) {
         return Ok(false);
@@ -217,19 +218,19 @@ fn read_json(path: &Path) -> Result<Value> {
         return Ok(json!({}));
     }
     let s = fs::read_to_string(path)
-        .map_err(|e| Error::Msg(format!("{} 読込失敗: {e}", path.display())))?;
+        .map_err(|e| Error::Msg(format!("cannot read {}: {e}", path.display())))?;
     if s.trim().is_empty() {
         return Ok(json!({}));
     }
     serde_json::from_str(&s)
-        .map_err(|e| Error::Msg(format!("{} は不正な JSON: {e}", path.display())))
+        .map_err(|e| Error::Msg(format!("{} is not valid JSON: {e}", path.display())))
 }
 
 fn write_json(path: &Path, v: &Value) -> Result<()> {
-    let s =
-        serde_json::to_string_pretty(v).map_err(|e| Error::Msg(format!("JSON 整形失敗: {e}")))?;
+    let s = serde_json::to_string_pretty(v)
+        .map_err(|e| Error::Msg(format!("cannot serialize JSON: {e}")))?;
     fs::write(path, format!("{s}\n"))
-        .map_err(|e| Error::Msg(format!("{} 書込失敗: {e}", path.display())))
+        .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))
 }
 
 // ---- CLAUDE.md ----
@@ -237,7 +238,7 @@ fn write_json(path: &Path, v: &Value) -> Result<()> {
 fn add_import(path: &Path, import_line: &str) -> Result<bool> {
     let mut content = if path.exists() {
         fs::read_to_string(path)
-            .map_err(|e| Error::Msg(format!("{} 読込失敗: {e}", path.display())))?
+            .map_err(|e| Error::Msg(format!("cannot read {}: {e}", path.display())))?
     } else {
         String::new()
     };
@@ -249,7 +250,7 @@ fn add_import(path: &Path, import_line: &str) -> Result<bool> {
     }
     content.push_str(&format!("\n{IMPORT_MARKER}\n{import_line}\n"));
     fs::write(path, content)
-        .map_err(|e| Error::Msg(format!("{} 書込失敗: {e}", path.display())))?;
+        .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))?;
     Ok(true)
 }
 
@@ -258,7 +259,7 @@ fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
         return Ok(false);
     }
     let content = fs::read_to_string(path)
-        .map_err(|e| Error::Msg(format!("{} 読込失敗: {e}", path.display())))?;
+        .map_err(|e| Error::Msg(format!("cannot read {}: {e}", path.display())))?;
     let mut kept: Vec<&str> = Vec::new();
     let mut removed = false;
     for line in content.lines() {
@@ -279,7 +280,7 @@ fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
             joined.push('\n');
         }
         fs::write(path, joined)
-            .map_err(|e| Error::Msg(format!("{} 書込失敗: {e}", path.display())))?;
+            .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))?;
     }
     Ok(removed)
 }

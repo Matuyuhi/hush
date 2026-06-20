@@ -28,9 +28,9 @@ pub fn run() -> Result<i32> {
 
 #[cfg(not(unix))]
 pub fn run() -> Result<i32> {
-    println!("hush doctor — このプラットフォームは未対応です");
-    println!("  非送信ゲート/プローブは Unix (macOS/Linux) のみ対応します。");
-    // fail-closed: 検証できない＝保証できないので非ゼロを返す。
+    println!("hush doctor: this platform is not supported");
+    println!("  the non-transmission gate/probes support Unix (macOS/Linux) only");
+    // fail-closed: cannot verify => cannot guarantee, so return non-zero.
     Ok(1)
 }
 
@@ -169,52 +169,52 @@ mod unix_impl {
     }
 
     pub(super) fn run() -> Result<i32> {
-        println!("hush doctor — 非送信サンドボックス検証\n");
+        println!("hush doctor — non-transmission sandbox check\n");
         println!("  platform  : {}", std::env::consts::OS);
         println!("  mechanism : {}", sandbox::mechanism());
         println!();
 
-        // 1) ゲート前: 送信経路が開いていることを確認（プローブが本物である証明）。
+        // 1) Pre-gate: confirm the path is open (proves the probe is real).
         let before = probe_all();
-        println!("  pre-gate probes (これらは通るはず):");
+        println!("  pre-gate probes (expected to pass):");
         println!("    TCP connect 127.0.0.1:9 : {}", before.tcp.describe());
         println!("    UDP sendto  127.0.0.1:9 : {}", before.udp.describe());
         println!();
 
-        // 2) ゲート適用（doctor は raw な結果を見せたいので gate() ではなく直接）。
+        // 2) Apply the gate (doctor uses deny_network directly to show the raw result).
         match sandbox::deny_network() {
             Ok(()) => println!("  gate      : applied ✓\n"),
             Err(e) => {
                 println!("  gate      : FAILED ✗  ({e})\n");
-                println!("  verdict   : FAIL — サンドボックスを適用できませんでした");
+                println!("  verdict   : FAIL — could not apply the sandbox");
                 return Ok(1);
             }
         }
 
-        // 3) ゲート後: 同じプローブが塞がることを確認。
+        // 3) Post-gate: confirm the same probes are now blocked.
         let after = probe_all();
-        println!("  post-gate probes (これらは塞がるはず):");
+        println!("  post-gate probes (expected to be blocked):");
         println!("    TCP connect 127.0.0.1:9 : {}", after.tcp.describe());
         println!("    UDP sendto  127.0.0.1:9 : {}", after.udp.describe());
         println!();
 
-        // 判定: ゲート後は両方とも遮断されていること（PASS の必須条件）。
+        // Verdict: both must be blocked after the gate (required for PASS).
         let post_blocked = after.tcp.is_blocked() && after.udp.is_blocked();
-        // 信頼性の補足: ゲート前は開いていたか（遮断の原因がゲートであることの裏付け）。
+        // Credibility check: were they open before the gate?
         let pre_open = !before.tcp.is_blocked() || !before.udp.is_blocked();
 
         if post_blocked {
             if pre_open {
-                println!("  verdict   : PASS — ゲートにより outbound network が遮断されました");
+                println!("  verdict   : PASS — the gate blocked outbound network");
             } else {
                 println!(
-                    "  verdict   : PASS — outbound network は遮断されています\n\
-                     （注: ゲート前から既に遮断されていました。外側に別のサンドボックスがある可能性）"
+                    "  verdict   : PASS — outbound network is blocked\n\
+                     (note: already blocked before the gate; an outer sandbox may be present)"
                 );
             }
             Ok(0)
         } else {
-            println!("  verdict   : FAIL — ゲート後も outbound network が遮断されていません");
+            println!("  verdict   : FAIL — outbound network is NOT blocked after the gate");
             Ok(1)
         }
     }

@@ -16,9 +16,7 @@ pub fn data_dir() -> Result<PathBuf> {
     }
     let home = std::env::var_os("HOME")
         .filter(|h| !h.is_empty())
-        .ok_or_else(|| {
-            Error::Msg("HOME 環境変数が未設定のためデータディレクトリを決定できません".into())
-        })?;
+        .ok_or_else(|| Error::Msg("cannot determine data directory: HOME is not set".into()))?;
     Ok(PathBuf::from(home).join(".local/share/hush"))
 }
 

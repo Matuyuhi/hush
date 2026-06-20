@@ -25,7 +25,7 @@ pub fn run(days: Option<u64>) -> Result<i32> {
     let read = match fs::read_dir(dir) {
         Ok(r) => r,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            println!("hush gc — まだアーティファクトはありません");
+            println!("hush gc: no artifacts yet");
             return Ok(0);
         }
         Err(e) => return Err(e.into()),
@@ -56,11 +56,11 @@ pub fn run(days: Option<u64>) -> Result<i32> {
     match days {
         None => {
             println!(
-                "hush gc — {} アーティファクト / 約 {} KiB",
+                "hush gc: {} artifacts, ~{} KiB",
                 artifact_count,
                 total_bytes / 1024
             );
-            println!("  古いものを削除するには: hush gc --days <N>");
+            println!("  remove old ones with: hush gc --days <N>");
         }
         Some(d) => {
             let mut removed = 0u64;
@@ -71,7 +71,7 @@ pub fn run(days: Option<u64>) -> Result<i32> {
                 let _ = fs::remove_file(&meta_path);
                 removed += 1;
             }
-            println!("hush gc — {d} 日より古い {removed} 件を削除しました");
+            println!("hush gc: removed {removed} artifact(s) older than {d} day(s)");
         }
     }
 

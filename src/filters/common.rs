@@ -43,7 +43,7 @@ pub fn truncate_head(lines: Vec<String>, max: usize, head: usize) -> (Vec<String
     if lines.len() > max {
         let omitted = lines.len() - head;
         let mut out = lines[..head].to_vec();
-        out.push(format!("┄ さらに {omitted} 行（hush expand で全文）"));
+        out.push(format!("... {omitted} more lines (hush expand for full)"));
         (out, true)
     } else {
         (lines, false)
@@ -65,7 +65,7 @@ pub fn group_paths_by_dir(paths: &[&str], threshold: usize) -> Vec<String> {
     let mut out = Vec::new();
     for (dir, members) in by_dir {
         if members.len() >= threshold {
-            out.push(format!("{dir} ({} 件)", members.len()));
+            out.push(format!("{dir} ({} files)", members.len()));
         } else {
             for m in members {
                 out.push(m.to_string());

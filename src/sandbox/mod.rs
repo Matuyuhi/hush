@@ -50,7 +50,7 @@ pub fn mechanism() -> &'static str {
     }
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
-        "未対応プラットフォーム（fail-closed）"
+        "unsupported platform (fail-closed)"
     }
 }
 
@@ -64,14 +64,14 @@ pub fn gate() -> Result<()> {
         Err(e) => {
             if std::env::var_os("HUSH_ALLOW_NO_SANDBOX").is_some() {
                 eprintln!(
-                    "hush: 警告: 非送信サンドボックスを適用できませんでした ({e})。\n\
-                     hush: HUSH_ALLOW_NO_SANDBOX が設定されているため続行します（非送信保証なし）。"
+                    "hush: warning: could not apply the non-transmission sandbox ({e}).\n\
+                     hush: continuing because HUSH_ALLOW_NO_SANDBOX is set (no non-transmission guarantee)."
                 );
                 Ok(())
             } else {
                 Err(crate::error::Error::Sandbox(format!(
-                    "非送信ゲートを確立できませんでした: {e}\n\
-                     （どうしても続行する場合のみ HUSH_ALLOW_NO_SANDBOX=1 を設定。ただし非送信は保証されません）"
+                    "could not establish the non-transmission gate: {e}\n\
+                     (set HUSH_ALLOW_NO_SANDBOX=1 to continue anyway, but non-transmission is not guaranteed)"
                 )))
             }
         }

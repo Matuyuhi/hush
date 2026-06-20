@@ -26,7 +26,7 @@ const ARCH: TargetArch = TargetArch::x86_64;
 const ARCH: TargetArch = TargetArch::aarch64;
 #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
 compile_error!(
-    "hush の Linux 非送信ゲートは現在 x86_64 / aarch64 のみ対応です（seccomp BPF の TargetArch 未定義）"
+    "hush's Linux non-transmission gate currently supports only x86_64 / aarch64 (seccomp BPF TargetArch undefined for this arch)"
 );
 
 pub fn deny_network() -> Result<()> {
@@ -47,7 +47,7 @@ pub fn deny_network() -> Result<()> {
     ]
     .into_iter()
     .collect::<std::result::Result<Vec<_>, _>>()
-    .map_err(|e| Error::Sandbox(format!("seccomp ルール構築失敗: {e}")))?;
+    .map_err(|e| Error::Sandbox(format!("failed to build seccomp rule: {e}")))?;
 
     let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
     // SYS_socket は 64bit Linux では既に i64（c_long）。対応 ARCH も 64bit のみ。
@@ -60,13 +60,14 @@ pub fn deny_network() -> Result<()> {
         SeccompAction::Errno(libc::EPERM as u32),
         ARCH,
     )
-    .map_err(|e| Error::Sandbox(format!("seccomp フィルタ構築失敗: {e}")))?;
+    .map_err(|e| Error::Sandbox(format!("failed to build seccomp filter: {e}")))?;
 
     let program: BpfProgram = filter
         .try_into()
-        .map_err(|e| Error::Sandbox(format!("seccomp BPF 変換失敗: {e}")))?;
+        .map_err(|e| Error::Sandbox(format!("failed to convert seccomp filter to BPF: {e}")))?;
 
-    apply_filter(&program).map_err(|e| Error::Sandbox(format!("seccomp 適用失敗: {e}")))?;
+    apply_filter(&program)
+        .map_err(|e| Error::Sandbox(format!("failed to apply seccomp filter: {e}")))?;
 
     Ok(())
 }

@@ -20,7 +20,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     if lines.len() <= RAW_LIMIT {
         let shown_lines = lines.len();
         let compact = if lines.is_empty() {
-            "(一致なし)".to_string()
+            "(no matches)".to_string()
         } else {
             lines.join("\n")
         };
@@ -54,9 +54,9 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         }
     }
 
-    let mut out = vec![format!("{} 件 / {} ファイル:", lines.len(), order.len())];
+    let mut out = vec![format!("{} matches in {} files:", lines.len(), order.len())];
     for f in &order {
-        out.push(format!("{f}: {} 件", counts[f]));
+        out.push(format!("{f}: {}", counts[f]));
     }
     let (shown, _truncated) = truncate_head(out, 60, 50);
     let shown_lines = shown.len();

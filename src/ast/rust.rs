@@ -14,10 +14,10 @@ pub fn signatures(src: &[u8]) -> Result<FilterOutput> {
     let language: tree_sitter::Language = tree_sitter_rust::LANGUAGE.into();
     parser
         .set_language(&language)
-        .map_err(|e| Error::Filter(format!("tree-sitter 言語設定に失敗: {e}")))?;
+        .map_err(|e| Error::Filter(format!("failed to set tree-sitter language: {e}")))?;
     let tree = parser
         .parse(src, None)
-        .ok_or_else(|| Error::Filter("Rust ソースのパースに失敗しました".into()))?;
+        .ok_or_else(|| Error::Filter("failed to parse Rust source".into()))?;
 
     let mut out: Vec<String> = Vec::new();
     walk(tree.root_node(), src, 0, &mut out);
@@ -25,7 +25,7 @@ pub fn signatures(src: &[u8]) -> Result<FilterOutput> {
     let orig_lines = String::from_utf8_lossy(src).lines().count();
     let shown_lines = out.len();
     let compact = if out.is_empty() {
-        "(シグネチャが見つかりませんでした)".to_string()
+        "(no signatures found)".to_string()
     } else {
         out.join("\n")
     };

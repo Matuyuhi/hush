@@ -66,13 +66,18 @@ pub fn finalize(out: FilterOutput, argv: &[String], cwd: &Path, exit_code: i32) 
     match &out.original {
         Some(orig) => {
             let store = Store::open()?;
+            let cwd_s = cwd.to_string_lossy();
             let id = store.put(
                 orig,
-                argv,
-                &cwd.to_string_lossy(),
-                exit_code,
-                out.filter_name,
-                out.orig_lines,
+                crate::store::PutMeta {
+                    command: argv,
+                    cwd: &cwd_s,
+                    exit_code,
+                    filter: out.filter_name,
+                    orig_lines: out.orig_lines,
+                    compact_bytes: out.compact.len(),
+                    compact_lines: out.shown_lines,
+                },
             )?;
             Ok(format!(
                 "{}{}",
