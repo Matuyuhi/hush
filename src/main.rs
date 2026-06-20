@@ -8,6 +8,7 @@ mod filters;
 mod paths;
 mod sandbox;
 mod store;
+mod ui;
 
 use clap::Parser;
 

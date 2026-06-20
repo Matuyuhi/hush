@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
+use crate::ui::{self, Row};
 
 /// Model-facing usage guide (read every session, so keep it short).
 const HUSH_MD: &str = "# hush — compressed command output (this project)\n\
@@ -60,6 +61,19 @@ fn layout(user: bool) -> Result<Layout> {
     }
 }
 
+/// 表示用の短いパス（実ファイル操作は絶対パスを使う）。戻り値は (settings, hush, claude)。
+fn display_paths(user: bool) -> (&'static str, &'static str, &'static str) {
+    if user {
+        (
+            "~/.claude/settings.json",
+            "~/.claude/HUSH.md",
+            "~/.claude/CLAUDE.md",
+        )
+    } else {
+        (".claude/settings.json", ".claude/HUSH.md", "CLAUDE.md")
+    }
+}
+
 /// settings.json に書く hook コマンド（hush の絶対パス + " hook"）。
 fn hook_command() -> Result<String> {
     let exe = std::env::current_exe()
@@ -85,33 +99,40 @@ pub fn run(user: bool) -> Result<i32> {
     let added_hook = install_hook(&lay.settings, &cmd)?;
     let added_import = add_import(&lay.claude_md, &lay.import_line)?;
 
-    println!(
-        "hush install: done ({} scope)",
-        if user { "user" } else { "project" }
-    );
-    println!("  HUSH.md       : {}", lay.hush_md.display());
-    println!(
-        "  settings.json : {} ({})",
-        lay.settings.display(),
-        if added_hook {
-            "added PostToolUse hook"
-        } else {
-            "already configured"
-        }
-    );
-    println!(
-        "  CLAUDE.md     : {} ({})",
-        lay.claude_md.display(),
-        if added_import {
-            format!("added {}", lay.import_line)
-        } else {
-            "already present".to_string()
-        }
-    );
-    println!("  hook command  : {cmd}");
+    let scope = if user { "user" } else { "project" };
+    let (settings_disp, hush_disp, claude_disp) = display_paths(user);
+    let rows = vec![
+        Row::Center(format!("hush install ({scope})")),
+        Row::Rule,
+        Row::Line(format!(
+            "  settings.json  {settings_disp}  ({})",
+            if added_hook {
+                "added PostToolUse hook"
+            } else {
+                "already configured"
+            }
+        )),
+        Row::Line(format!(
+            "  CLAUDE.md      {claude_disp}  ({})",
+            if added_import {
+                format!("added {}", lay.import_line)
+            } else {
+                "already present".to_string()
+            }
+        )),
+        Row::Line(format!("  HUSH.md        {hush_disp}")),
+        Row::Line(format!("  hook command   {cmd}")),
+        Row::Rule,
+        Row::Line(
+            "  takes effect in the next Claude Code session; remove with `hush uninstall`"
+                .to_string(),
+        ),
+        Row::Line(
+            "  if hush moves (e.g. after brew install), run `hush install` again".to_string(),
+        ),
+    ];
     println!();
-    println!("note: takes effect in the next Claude Code session. remove with `hush uninstall`.");
-    println!("note: if hush moves (e.g. after brew install), run `hush install` again.");
+    ui::render(&rows);
     Ok(0)
 }
 
@@ -120,30 +141,31 @@ pub fn uninstall(user: bool) -> Result<i32> {
     let removed_hook = remove_hook(&lay.settings)?;
     let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
 
-    println!(
-        "hush uninstall: done ({} scope)",
-        if user { "user" } else { "project" }
-    );
-    println!(
-        "  settings.json : {}",
-        if removed_hook {
-            "removed hook"
-        } else {
-            "no hush hook"
-        }
-    );
-    println!(
-        "  CLAUDE.md     : {}",
-        if removed_import {
-            "removed @import"
-        } else {
-            "no @import"
-        }
-    );
-    println!(
-        "  HUSH.md       : left in place (delete manually if unwanted): {}",
-        lay.hush_md.display()
-    );
+    let scope = if user { "user" } else { "project" };
+    let (_settings_disp, hush_disp, _claude_disp) = display_paths(user);
+    let rows = vec![
+        Row::Center(format!("hush uninstall ({scope})")),
+        Row::Rule,
+        Row::Line(format!(
+            "  settings.json  {}",
+            if removed_hook {
+                "removed hook"
+            } else {
+                "no hush hook"
+            }
+        )),
+        Row::Line(format!(
+            "  CLAUDE.md      {}",
+            if removed_import {
+                "removed @import"
+            } else {
+                "no @import"
+            }
+        )),
+        Row::Line(format!("  HUSH.md        left in place: {hush_disp}")),
+    ];
+    println!();
+    ui::render(&rows);
     Ok(0)
 }
 
