@@ -38,7 +38,7 @@ conspire to keep:
 
 - **Filters** (`filters/`) are the compaction. `filters/mod.rs::run` dispatches on argv
   (`git status/diff/log`, `cargo build|clippy|check`, `cargo test`, `go test`/`pytest`/`jest`,
-  `grep`, `find`, `ls`, `docker ps`/`kubectl get`/`ps`/`df`, …) and falls back to `passthrough`.
+  `grep`, `find`, `ls`, `docker ps`/`kubectl get`/`ps`/`df`, etc.) and falls back to `passthrough`.
   Each filter is a **pure** `FilterInput { argv, stdout, stderr } -> FilterOutput`; it never
   touches the store, network, or process. Shared compaction primitives live in
   `filters/common.rs` (`strip_ansi`, `collapse_blank_runs`, `dedup_all`, `truncate_head_tail`,
