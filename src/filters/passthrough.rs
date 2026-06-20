@@ -3,7 +3,7 @@
 //! - 標準出力＋標準エラーを結合
 //! - 連続空行の畳み込み
 //! - 連続する同一行の dedup（回数表示）
-//! - 長すぎる場合は先頭のみ表示し、原文は expand へ回す
+//! - 長すぎる場合は先頭＋末尾を表示し（中略マーカー）、原文は expand へ回す
 
 use super::common::{
     collapse_blank_runs, combine_raw, dedup_consecutive, strip_ansi, truncate_head_tail,
