@@ -39,16 +39,25 @@ pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
 
 /// 出現位置が離れていても同一行をまとめる（最初の出現順を保ち、2回以上は `  (xN)`）。
 /// 同じ警告が散発的に繰り返されるログ等で効く。
+///
+/// 空行（空白のみ）は dedup 対象外でそのまま残す。セクション区切りを潰さないため
+/// （連続空行は collapse_blank_runs が別途畳む）。
 pub fn dedup_all(lines: &[&str]) -> Vec<String> {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     let mut counts: HashMap<&str, usize> = HashMap::new();
     for l in lines {
-        *counts.entry(l).or_insert(0) += 1;
+        if !l.trim().is_empty() {
+            *counts.entry(l).or_insert(0) += 1;
+        }
     }
-    let mut seen: HashMap<&str, ()> = HashMap::new();
+    let mut seen: HashSet<&str> = HashSet::new();
     let mut out = Vec::new();
     for l in lines {
-        if seen.insert(l, ()).is_none() {
+        if l.trim().is_empty() {
+            out.push((*l).to_string()); // 空行は区切りとして保持
+            continue;
+        }
+        if seen.insert(l) {
             let c = counts[l];
             if c > 1 {
                 out.push(format!("{l}  (x{c})"));
@@ -260,6 +269,21 @@ mod tests {
         assert_eq!(
             dedup_all(&lines),
             vec!["warn  (x3)".to_string(), "info  (x2)".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_all_keeps_blank_separators() {
+        // 空行は dedup されず区切りとして残る（非空行のみ集約）。
+        let lines = vec!["a", "", "b", "", "a"];
+        assert_eq!(
+            dedup_all(&lines),
+            vec![
+                "a  (x2)".to_string(),
+                String::new(),
+                "b".to_string(),
+                String::new(),
+            ]
         );
     }
 }

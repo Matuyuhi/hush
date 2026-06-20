@@ -29,7 +29,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     let orig_lines = display.lines().count();
 
-    // 圧縮: 空行畳み込み → 連続重複の dedup。
+    // 圧縮: 空行畳み込み → 重複行の dedup（離れていても集約）。
     let collapsed = collapse_blank_runs(&display);
     let lines: Vec<&str> = collapsed.lines().collect();
     let deduped = dedup_all(&lines);
