@@ -295,7 +295,11 @@ mod tests {
         let lines = vec!["a", "a", "b", "c", "c"];
         assert_eq!(
             dedup_consecutive(&lines),
-            vec!["a  (x2)".to_string(), "b".to_string(), "c  (x2)".to_string()]
+            vec![
+                "a  (x2)".to_string(),
+                "b".to_string(),
+                "c  (x2)".to_string()
+            ]
         );
     }
 
