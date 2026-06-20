@@ -74,17 +74,17 @@ fn display_paths(user: bool) -> (&'static str, &'static str, &'static str) {
     }
 }
 
+/// Bash向けに安全にパスを単一引用符で囲む。
+fn escape_path_for_bash(path: &str) -> String {
+    format!("'{}'", path.replace('\'', "'\\''"))
+}
+
 /// settings.json に書く hook コマンド（hush の絶対パス + " hook"）。
 fn hook_command() -> Result<String> {
     let exe = std::env::current_exe()
         .map_err(|e| Error::Msg(format!("cannot get executable path: {e}")))?;
     let p = exe.to_string_lossy().into_owned();
-    // パスに空白が含まれてもよう単一引用符で囲む（単一引用符を含む稀なパスは素のまま）。
-    if p.contains('\'') {
-        Ok(format!("{p} hook"))
-    } else {
-        Ok(format!("'{p}' hook"))
-    }
+    Ok(format!("{} hook", escape_path_for_bash(&p)))
 }
 
 pub fn run(user: bool) -> Result<i32> {
@@ -305,4 +305,31 @@ fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
             .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))?;
     }
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_escape_path_for_bash() {
+        assert_eq!(
+            escape_path_for_bash("/usr/local/bin/hush"),
+            "'/usr/local/bin/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path with spaces/hush"),
+            "'/path with spaces/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path/with/'quotes'/hush"),
+            "'/path/with/'\\''quotes'\\''/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("C:\\Program Files\\hush.exe"),
+            "'C:\\Program Files\\hush.exe'"
+        );
+        assert_eq!(escape_path_for_bash("simple"), "'simple'");
+        assert_eq!(escape_path_for_bash("'"), "''\\'''");
+    }
 }
