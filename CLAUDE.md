@@ -32,10 +32,10 @@ src/
   irreversible. Never add code that touches the network on the filter/expand path, and never
   reorder so filtering happens before the gate. Subcommands that don't spawn a child (expand,
   gc, stats, read) call `sandbox::gate()` at their start.
-- **ASCII-only output.** All user-facing output is ASCII. Do **not** use East-Asian
-  ambiguous-width characters (`─ · → × ✓ ✗`): they render double-width in CJK terminals and
-  break column alignment. Use `-`, `->`, `x`, words. Build framed/tabular output through
-  `ui.rs` (widths are computed from the data so layout never breaks).
+- **Stable-width output.** `ui.rs` width calculations assume one column per character (`chars().count()`),
+  so framed/tabular output must stick to ASCII and avoid East-Asian ambiguous-width glyphs
+  (`─ · → × ✓ ✗`), which render double-width in CJK terminals and break alignment.
+  Prefer `-`, `->`, `x`, or words.
 - **English output.** All user-facing strings (help text, footers, messages, errors,
   `HUSH.md`) are English. Code comments are Japanese (matching the existing style).
 - **Filters are pure.** A filter takes `FilterInput { argv, stdout, stderr }` and returns
