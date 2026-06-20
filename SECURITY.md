@@ -47,7 +47,7 @@ consequence.
 ### Verify it yourself
 
 `hush doctor` attempts an outbound connection *before* and *after* the gate and shows
-that it is possible beforehand and blocked (`EPERM`) afterward — demonstrating that the
+that it is possible beforehand and blocked (`EPERM`/`EACCES`) afterward — demonstrating that the
 gate, not luck, is what stops transmission. CI runs `hush doctor` on both macOS and Linux
 on every change.
 
