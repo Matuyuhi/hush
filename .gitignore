@@ -26,3 +26,5 @@ target
 /target
 
 .idea
+.claude
+!.claude/HUSH.md

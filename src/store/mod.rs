@@ -141,3 +141,40 @@ fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         Err(e) => Err(e),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
+        // Valid cases (alphanumeric, typical hex output)
+        assert!(validate_id("abcdef123456").is_ok());
+        assert!(validate_id("0123456789").is_ok());
+        assert!(validate_id("a").is_ok());
+        assert!(validate_id("Z").is_ok());
+        assert!(validate_id("A1z9").is_ok());
+
+        // Invalid cases: empty
+        assert!(validate_id("").is_err());
+
+        // Invalid cases: path traversal and directory separators
+        assert!(validate_id("../123").is_err());
+        assert!(validate_id("..").is_err());
+        assert!(validate_id(".").is_err());
+        assert!(validate_id("abc/def").is_err());
+        assert!(validate_id("abc\\def").is_err());
+
+        // Invalid cases: other symbols
+        assert!(validate_id("abc.def").is_err());
+        assert!(validate_id("abc-def").is_err());
+        assert!(validate_id("abc_def").is_err());
+        assert!(validate_id("abc def").is_err());
+        assert!(validate_id("abc\ndef").is_err());
+
+        // Invalid cases: non-ASCII characters
+        assert!(validate_id("あ").is_err());
+        assert!(validate_id("abcあ").is_err());
+        assert!(validate_id("😊").is_err());
+    }
+}

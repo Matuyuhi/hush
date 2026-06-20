@@ -9,7 +9,9 @@ pub fn collapse_blank_runs(text: &str) -> String {
         if blank && prev_blank {
             continue;
         }
-        out.push_str(line);
+        if !blank {
+            out.push_str(line);
+        }
         out.push('\n');
         prev_blank = blank;
     }
@@ -122,7 +124,7 @@ pub fn group_paths_by_dir(paths: &[&str], threshold: usize) -> Vec<String> {
     let mut out = Vec::new();
     for (dir, members) in by_dir {
         if members.len() >= threshold {
-            out.push(format!("{dir} ({} files)", members.len()));
+            out.push(format!("{dir} ({} 件)", members.len()));
         } else {
             for m in members {
                 out.push(m.to_string());
@@ -200,6 +202,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn collapse_blank_runs_removes_leading_and_trailing() {
+        assert_eq!(collapse_blank_runs("\n\nhello\n\n"), "hello");
+        assert_eq!(collapse_blank_runs("   \n\nhello\n  \n"), "hello");
+        assert_eq!(collapse_blank_runs("\t\n\nhello\n\t  \n"), "hello");
+    }
+
+    #[test]
+    fn collapse_blank_runs_collapses_middle_blanks() {
+        assert_eq!(collapse_blank_runs("hello\n\n\nworld"), "hello\n\nworld");
+        assert_eq!(collapse_blank_runs("a\n   \n\nb"), "a\n\nb");
+    }
+
+    #[test]
+    fn collapse_blank_runs_handles_no_blanks() {
+        assert_eq!(collapse_blank_runs("hello\nworld"), "hello\nworld");
+        assert_eq!(collapse_blank_runs("single_line"), "single_line");
+    }
+
+    #[test]
+    fn collapse_blank_runs_handles_only_blanks() {
+        assert_eq!(collapse_blank_runs(""), "");
+        assert_eq!(collapse_blank_runs("\n"), "");
+        assert_eq!(collapse_blank_runs("\n\n\n"), "");
+        assert_eq!(collapse_blank_runs("   \n  \n"), "");
+    }
+
+    #[test]
     fn strip_ansi_removes_csi_color() {
         assert_eq!(strip_ansi("\x1b[31mred\x1b[0m"), "red");
         assert_eq!(strip_ansi("\x1b[1;32mok\x1b[0m done"), "ok done");
@@ -221,6 +250,35 @@ mod tests {
         assert_eq!(strip_ansi("\x1b]0;a\x1bb\x07keep"), "keep");
         // 中途半端な末尾 ESC で無限ループ/panic しない。
         assert_eq!(strip_ansi("text\x1b"), "text");
+    }
+
+    #[test]
+    fn truncate_head_truncates_when_over_max() {
+        let lines: Vec<String> = (1..=10).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines, 5, 3);
+        assert!(truncated);
+        assert_eq!(out.len(), 4); // 3 head lines + 1 marker
+        assert_eq!(out[0], "1");
+        assert_eq!(out[1], "2");
+        assert_eq!(out[2], "3");
+        assert_eq!(out[3], "... 7 more lines (hush expand for full)");
+    }
+
+    #[test]
+    fn truncate_head_noop_when_under_max() {
+        let lines: Vec<String> = (1..=5).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines.clone(), 5, 3);
+        assert!(!truncated);
+        assert_eq!(out, lines);
+    }
+
+    #[test]
+    fn truncate_head_zero_head() {
+        let lines: Vec<String> = (1..=5).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head(lines, 3, 0);
+        assert!(truncated);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0], "... 5 more lines (hush expand for full)");
     }
 
     #[test]
@@ -263,6 +321,47 @@ mod tests {
     }
 
     #[test]
+    fn dedup_consecutive_empty() {
+        let lines: Vec<&str> = vec![];
+        let expected: Vec<String> = vec![];
+        assert_eq!(dedup_consecutive(&lines), expected);
+    }
+
+    #[test]
+    fn dedup_consecutive_single() {
+        let lines = vec!["a"];
+        assert_eq!(dedup_consecutive(&lines), vec!["a".to_string()]);
+    }
+
+    #[test]
+    fn dedup_consecutive_no_duplicates() {
+        let lines = vec!["a", "b", "c"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_consecutive_all_duplicates() {
+        let lines = vec!["a", "a", "a"];
+        assert_eq!(dedup_consecutive(&lines), vec!["a  (x3)".to_string()]);
+    }
+
+    #[test]
+    fn dedup_consecutive_mixed() {
+        let lines = vec!["a", "a", "b", "c", "c"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec![
+                "a  (x2)".to_string(),
+                "b".to_string(),
+                "c  (x2)".to_string()
+            ]
+        );
+    }
+
+    #[test]
     fn dedup_all_collapses_scattered_dups() {
         let lines = vec!["warn", "info", "warn", "warn", "info"];
         // 最初の出現順を保ち、各ユニーク行を1回・回数付き。
@@ -285,5 +384,82 @@ mod tests {
                 String::new(),
             ]
         );
+    }
+
+    #[test]
+    fn group_paths_by_dir_under_threshold() {
+        let paths = vec!["src/a.rs", "src/b.rs"];
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec!["src/a.rs".to_string(), "src/b.rs".to_string()]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_over_threshold() {
+        let paths = vec!["src/a.rs", "src/b.rs", "src/c.rs"];
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec!["src/ (3 件)".to_string()]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_root_paths() {
+        let paths = vec!["a.rs", "b.rs"];
+        assert_eq!(group_paths_by_dir(&paths, 2), vec!["./ (2 件)".to_string()]);
+    }
+
+    #[test]
+    fn group_paths_by_dir_mixed() {
+        let paths = vec![
+            "src/a.rs",
+            "src/b.rs",
+            "test/a.rs",
+            "test/b.rs",
+            "test/c.rs",
+        ];
+        // BTreeMap is sorted by dir alphabetically
+        assert_eq!(
+            group_paths_by_dir(&paths, 3),
+            vec![
+                "src/a.rs".to_string(),
+                "src/b.rs".to_string(),
+                "test/ (3 件)".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn group_paths_by_dir_empty() {
+        let paths: Vec<&str> = vec![];
+        assert_eq!(group_paths_by_dir(&paths, 3), Vec::<String>::new());
+    }
+
+    #[test]
+    fn combine_raw_both_empty() {
+        assert_eq!(combine_raw(b"", b""), b"");
+    }
+
+    #[test]
+    fn combine_raw_stdout_only() {
+        assert_eq!(combine_raw(b"hello stdout", b""), b"hello stdout");
+    }
+
+    #[test]
+    fn combine_raw_stderr_only() {
+        assert_eq!(combine_raw(b"", b"hello stderr"), b"hello stderr");
+    }
+
+    #[test]
+    fn combine_raw_both_with_newline() {
+        let expected = b"hello stdout\n--- stderr ---\nhello stderr";
+        assert_eq!(combine_raw(b"hello stdout\n", b"hello stderr"), expected);
+    }
+
+    #[test]
+    fn combine_raw_both_without_newline() {
+        let expected = b"hello stdout\n--- stderr ---\nhello stderr";
+        assert_eq!(combine_raw(b"hello stdout", b"hello stderr"), expected);
     }
 }

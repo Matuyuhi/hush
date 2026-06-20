@@ -1,0 +1,49 @@
+
+running 34 tests
+test ast::tests::unsupported_extension_errors ... ok
+test filters::cargo_build::tests::falls_back_when_not_cargo_output ... ok
+test filters::cargo_build::tests::compacts_diagnostics_and_drops_snippets ... ok
+test filters::cargo_build::tests::keeps_cargo_own_error_cause_without_count_header ... ok
+test filters::common::tests::combine_raw_both_empty ... ok
+test filters::common::tests::combine_raw_both_with_newline ... ok
+test filters::common::tests::combine_raw_both_without_newline ... ok
+test filters::common::tests::combine_raw_stderr_only ... ok
+test filters::common::tests::combine_raw_stdout_only ... ok
+test filters::common::tests::dedup_all_collapses_scattered_dups ... ok
+test filters::common::tests::dedup_all_keeps_blank_separators ... ok
+test filters::common::tests::dedup_consecutive_collapses_runs ... ok
+test filters::common::tests::strip_ansi_handles_osc_and_trailing_esc ... ok
+test ast::tests::rust_signatures ... ok
+test filters::common::tests::strip_ansi_keeps_plain_text ... ok
+test ast::tests::go_signatures ... ok
+test filters::common::tests::strip_ansi_removes_csi_color ... ok
+test filters::common::tests::truncate_head_tail_clamps_to_max ... ok
+test ast::tests::python_signatures ... ok
+test filters::common::tests::truncate_head_tail_keeps_both_ends ... ok
+test filters::common::tests::truncate_head_tail_noop_when_small ... ok
+test ast::tests::javascript_signatures ... ok
+test filters::tabular::tests::does_not_dedup_identical_rows ... ok
+test filters::tabular::tests::header_but_no_data_falls_back ... ok
+test ast::tests::typescript_signatures ... ok
+test filters::tabular::tests::single_line_falls_back ... ok
+test ast::tests::tsx_signatures ... ok
+test filters::test_runner::tests::go_test_drops_run_and_pass_keeps_fail ... ok
+test filters::test_runner::tests::jest_drops_pass_files_keeps_summary ... ok
+test store::tests::validate_id_accepts_alphanumeric_and_rejects_invalid_chars ... ok
+test ui::tests::commas_groups_thousands ... ok
+test ui::tests::human_bytes_scales ... ok
+test filters::tabular::tests::keeps_header_and_truncates_rows ... ok
+test ui::tests::human_count_scales ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -13,7 +13,7 @@ use std::path::Path;
 use crate::error::Result;
 use crate::sandbox;
 use crate::store::{Meta, Store};
-use crate::ui::{self, Row, commas};
+use crate::ui::{self, Row, commas, human_bytes, human_count};
 
 /// Rough token estimate (1 token ~= 4 bytes).
 fn approx_tokens(bytes: u64) -> u64 {
@@ -134,30 +134,35 @@ fn collect_stats(dir: &Path) -> Result<Option<Stats>> {
 
 fn format_totals(stats: &Stats) -> Vec<String> {
     let saved_b = stats.orig_b.saturating_sub(stats.comp_b);
-    let ratio = 100.0 * saved_b as f64 / stats.orig_b as f64;
+    let ratio = if stats.orig_b > 0 {
+        100.0 * saved_b as f64 / stats.orig_b as f64
+    } else {
+        0.0
+    };
 
     // Column widths are computed from the actual data so the layout never breaks,
     // no matter how large the numbers or how long the filter names get.
 
     // --- totals block: (label, bytes, middle, tokens) ---
+    // バイトは B/KB/MB/GB、token は K/M/B にスケール表示（行数は実数のまま）。
     let totals = [
         (
             "original",
-            commas(stats.orig_b),
+            human_bytes(stats.orig_b),
             format!("{} lines", commas(stats.orig_l)),
-            commas(approx_tokens(stats.orig_b)),
+            human_count(approx_tokens(stats.orig_b)),
         ),
         (
             "compressed",
-            commas(stats.comp_b),
+            human_bytes(stats.comp_b),
             format!("{} lines", commas(stats.comp_l)),
-            commas(approx_tokens(stats.comp_b)),
+            human_count(approx_tokens(stats.comp_b)),
         ),
         (
             "saved",
-            commas(saved_b),
+            human_bytes(saved_b),
             format!("({ratio:.1}%)"),
-            commas(approx_tokens(saved_b)),
+            human_count(approx_tokens(saved_b)),
         ),
     ];
     let tw_label = totals
@@ -184,7 +189,7 @@ fn format_totals(stats: &Stats) -> Vec<String> {
     totals
         .iter()
         .map(|(l, b, m, t)| {
-            format!("  {l:<tw_label$}   {b:>tw_bytes$} B   {m:>tw_mid$}   ~{t:>tw_tok$} tok")
+            format!("  {l:<tw_label$}   {b:>tw_bytes$}   {m:>tw_mid$}   ~{t:>tw_tok$} tok")
         })
         .collect()
 }
@@ -204,8 +209,8 @@ fn format_filters(stats: &Stats) -> Vec<String> {
             (
                 (*f).clone(),
                 format!("{}x", fs.count),
-                commas(fs.orig_b),
-                commas(fs.comp_b),
+                human_bytes(fs.orig_b),
+                human_bytes(fs.comp_b),
                 format!("{r:.0}%"),
             )
         })
@@ -219,9 +224,7 @@ fn format_filters(stats: &Stats) -> Vec<String> {
     frows
         .iter()
         .map(|(n, c, ob, cb, p)| {
-            format!(
-                "  {n:<fw_name$}   {c:>fw_cnt$}   {ob:>fw_ob$} -> {cb:>fw_cb$} B   {p:>fw_pct$}"
-            )
+            format!("  {n:<fw_name$}   {c:>fw_cnt$}   {ob:>fw_ob$} -> {cb:>fw_cb$}   {p:>fw_pct$}")
         })
         .collect()
 }

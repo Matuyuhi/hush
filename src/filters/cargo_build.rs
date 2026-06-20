@@ -143,24 +143,8 @@ mod tests {
 
     #[test]
     fn compacts_diagnostics_and_drops_snippets() {
-        let stderr = "\
-   Compiling hush v0.1.0
-warning: unused variable: `x`
- --> src/foo.rs:10:9
-   |
-10 |     let x = 5;
-   |         ^ help: prefix it with an underscore: `_x`
-   |
-   = note: `#[warn(unused_variables)]` on by default
-
-error[E0308]: mismatched types
- --> src/bar.rs:20:5
-   |
-20 |     foo()
-   |     ^^^^^ expected `i32`, found `()`
-
-error: aborting due to 1 previous error; 1 warning emitted
-";
+        // サンプルは tests/fixtures/ で一元管理（圧縮率ベンチと共有）。
+        let stderr = include_str!("../../tests/fixtures/cargo-build/diagnostics.stderr");
         let input = FilterInput {
             argv: vec!["cargo".into(), "build".into()],
             stdout: Vec::new(),
@@ -188,15 +172,7 @@ error: aborting due to 1 previous error; 1 warning emitted
 
     #[test]
     fn keeps_cargo_own_error_cause_without_count_header() {
-        let stderr = "\
-   Compiling foo v0.1.0
-error: failed to run custom build command for `foo v0.1.0`
-
-Caused by:
-  process didn't exit successfully: `build-script-build` (exit status: 101)
-  --- stderr
-  thread 'main' panicked at build.rs:3:5
-";
+        let stderr = include_str!("../../tests/fixtures/cargo-build/cargo-own-error.stderr");
         let input = FilterInput {
             argv: vec!["cargo".into(), "build".into()],
             stdout: Vec::new(),
