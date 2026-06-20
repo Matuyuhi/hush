@@ -62,9 +62,9 @@ on every change.
 - Name resolution on macOS is performed by a system daemon over IPC, not an in-process
   network socket, so it is outside the scope of the in-process gate (and hush does not use
   it).
-- The expand store under `~/.local/share/hush/` holds **plaintext** copies of captured
-  command output. Treat it like any local cache — it lives within your own file
-  permissions. Prune it with `hush gc`. Avoid wrapping commands whose output must never
+- The expand store under `$XDG_DATA_HOME/hush/` (default `~/.local/share/hush/`) holds
+  **plaintext** copies of captured command output. Treat it like any local cache — it lives within
+  your own file permissions. Prune it with `hush gc`. Avoid wrapping commands whose output must never
   touch local disk.
 - Non-Unix platforms have no gate implementation and fail closed (hush refuses to filter).
 
