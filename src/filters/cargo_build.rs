@@ -74,18 +74,29 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
                 j += 1;
             }
             if loc.is_empty() {
+                // cargo 自身のエラー/警告（スニペット無し）。続く文脈（`Caused by:` 等）は
+                // 原因情報なので、次の診断ヘッダ/ノイズ/Finished まで（空行もまたいで）残す。
                 notes.push(t.to_string());
-            } else {
-                diags.push(format!("{t}  ({loc})"));
-            }
-            // この診断のスニペット本体を読み飛ばす（空行か次ヘッダまで）。
-            i += 1;
-            while i < lines.len() {
-                let ti = lines[i].trim_start();
-                if ti.is_empty() || is_diag_header(ti) || is_noise(ti) {
-                    break;
-                }
                 i += 1;
+                while i < lines.len() {
+                    let ti = lines[i].trim_start();
+                    if is_diag_header(ti) || is_noise(ti) || ti.starts_with("Finished") {
+                        break;
+                    }
+                    notes.push(lines[i].trim_end().to_string());
+                    i += 1;
+                }
+            } else {
+                // rustc 診断: コードスニペット本体を読み飛ばす（空行か次ヘッダまで）。
+                diags.push(format!("{t}  ({loc})"));
+                i += 1;
+                while i < lines.len() {
+                    let ti = lines[i].trim_start();
+                    if ti.is_empty() || is_diag_header(ti) || is_noise(ti) {
+                        break;
+                    }
+                    i += 1;
+                }
             }
             continue;
         }
@@ -100,12 +111,16 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         return passthrough::run(input);
     }
 
-    let errors = diags.iter().filter(|d| d.starts_with("error")).count();
-    let warnings = diags.iter().filter(|d| d.starts_with("warning")).count();
-
-    let diag_refs: Vec<&str> = diags.iter().map(String::as_str).collect();
-    let mut out = vec![format!("{errors} error(s), {warnings} warning(s):")];
-    out.extend(dedup_all(&diag_refs));
+    // 集計ヘッダは位置付き診断があるときだけ（cargo 自身のエラーのみで「0 error」と
+    // 誤表示しないため）。
+    let mut out = Vec::new();
+    if !diags.is_empty() {
+        let errors = diags.iter().filter(|d| d.starts_with("error")).count();
+        let warnings = diags.iter().filter(|d| d.starts_with("warning")).count();
+        let diag_refs: Vec<&str> = diags.iter().map(String::as_str).collect();
+        out.push(format!("{errors} error(s), {warnings} warning(s):"));
+        out.extend(dedup_all(&diag_refs));
+    }
     out.extend(notes);
 
     let (shown, _truncated) = truncate_head_tail(out, MAX_LINES, HEAD, TAIL);
@@ -169,6 +184,34 @@ error: aborting due to 1 previous error; 1 warning emitted
         // スニペット本体は捨てられている。
         assert!(!out.compact.contains("let x = 5"));
         assert!(!out.compact.contains("^^^^^"));
+    }
+
+    #[test]
+    fn keeps_cargo_own_error_cause_without_count_header() {
+        let stderr = "\
+   Compiling foo v0.1.0
+error: failed to run custom build command for `foo v0.1.0`
+
+Caused by:
+  process didn't exit successfully: `build-script-build` (exit status: 101)
+  --- stderr
+  thread 'main' panicked at build.rs:3:5
+";
+        let input = FilterInput {
+            argv: vec!["cargo".into(), "build".into()],
+            stdout: Vec::new(),
+            stderr: stderr.as_bytes().to_vec(),
+        };
+        let out = run(&input).unwrap();
+        // 位置付き診断が無いので集計ヘッダは出さない。
+        assert!(!out.compact.contains("error(s),"));
+        // cargo 自身のエラーと原因（Caused by 以降）は残す。
+        assert!(
+            out.compact
+                .contains("error: failed to run custom build command")
+        );
+        assert!(out.compact.contains("Caused by:"));
+        assert!(out.compact.contains("process didn't exit successfully"));
     }
 
     #[test]
