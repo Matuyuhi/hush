@@ -1,0 +1,138 @@
+src/ui.rs:21:pub fn render(rows: &[Row]) {
+src/ui.rs:41:pub fn center(s: &str, width: usize) -> String {
+src/ui.rs:50:pub fn commas(n: u64) -> String {
+src/ui.rs:65:pub fn human_count(n: u64) -> String {
+src/ui.rs:85:pub fn human_bytes(n: u64) -> String {
+src/ui.rs:108:    fn human_count_scales() {
+src/ui.rs:119:    fn human_bytes_scales() {
+src/ui.rs:128:    fn commas_groups_thousands() {
+src/error.rs:27:    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+src/error.rs:42:    fn from(e: std::io::Error) -> Self {
+src/error.rs:48:    fn from(e: serde_json::Error) -> Self {
+src/paths.rs:11:pub fn data_dir() -> Result<PathBuf> {
+src/paths.rs:24:pub fn objects_dir() -> Result<PathBuf> {
+src/lib.rs:23:pub fn run(cmd: cli::Cmd) -> Result<i32> {
+src/main.rs:3:fn main() {
+src/filters/ls.rs:10:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/git_diff.rs:10:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/render.rs:6:pub fn footer(filter: &str, id: &str, orig_lines: usize, shown_lines: usize) -> String {
+src/filters/grep.rs:14:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/cargo_test.rs:25:fn keep(line: &str) -> bool {
+src/filters/cargo_test.rs:40:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/tabular.rs:14:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/tabular.rs:64:    fn ps_like(n: usize) -> String {
+src/filters/tabular.rs:73:    fn keeps_header_and_truncates_rows() {
+src/filters/tabular.rs:90:    fn does_not_dedup_identical_rows() {
+src/filters/tabular.rs:108:    fn single_line_falls_back() {
+src/filters/tabular.rs:119:    fn header_but_no_data_falls_back() {
+src/filters/mod.rs:52:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/mod.rs:77:pub fn finalize(out: FilterOutput, argv: &[String], cwd: &Path, exit_code: i32) -> Result<String> {
+src/filters/find.rs:10:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/passthrough.rs:16:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/read.rs:15:pub fn run_file(path: &Path, signatures: bool) -> Result<FilterOutput> {
+src/filters/read.rs:41:fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
+src/filters/read.rs:48:fn signatures_of(_path: &Path, _bytes: Vec<u8>) -> Result<FilterOutput> {
+src/filters/cargo_build.rs:17:fn is_diag_header(t: &str) -> bool {
+src/filters/cargo_build.rs:25:fn is_noise(t: &str) -> bool {
+src/filters/cargo_build.rs:40:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/cargo_build.rs:145:    fn compacts_diagnostics_and_drops_snippets() {
+src/filters/cargo_build.rs:190:    fn keeps_cargo_own_error_cause_without_count_header() {
+src/filters/cargo_build.rs:218:    fn falls_back_when_not_cargo_output() {
+src/filters/git_status.rs:13:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/git_log.rs:13:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/test_runner.rs:15:fn is_passing_noise(line: &str) -> bool {
+src/filters/test_runner.rs:29:pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+src/filters/test_runner.rs:76:    fn go_test_drops_run_and_pass_keeps_fail() {
+src/filters/test_runner.rs:106:    fn jest_drops_pass_files_keeps_summary() {
+src/filters/common.rs:4:pub fn collapse_blank_runs(text: &str) -> String {
+src/filters/common.rs:20:pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
+src/filters/common.rs:45:pub fn dedup_all(lines: &[&str]) -> Vec<String> {
+src/filters/common.rs:74:pub fn truncate_head(lines: Vec<String>, max: usize, head: usize) -> (Vec<String>, bool) {
+src/filters/common.rs:89:pub fn truncate_head_tail(
+src/filters/common.rs:112:pub fn group_paths_by_dir(paths: &[&str], threshold: usize) -> Vec<String> {
+src/filters/common.rs:137:pub fn combine_raw(stdout: &[u8], stderr: &[u8]) -> Vec<u8> {
+src/filters/common.rs:156:pub fn strip_ansi(s: &str) -> String {
+src/filters/common.rs:203:    fn strip_ansi_removes_csi_color() {
+src/filters/common.rs:209:    fn strip_ansi_keeps_plain_text() {
+src/filters/common.rs:215:    fn strip_ansi_handles_osc_and_trailing_esc() {
+src/filters/common.rs:227:    fn truncate_head_tail_keeps_both_ends() {
+src/filters/common.rs:239:    fn truncate_head_tail_noop_when_small() {
+src/filters/common.rs:247:    fn truncate_head_tail_clamps_to_max() {
+src/filters/common.rs:257:    fn dedup_consecutive_collapses_runs() {
+src/filters/common.rs:266:    fn dedup_all_collapses_scattered_dups() {
+src/filters/common.rs:276:    fn dedup_all_keeps_blank_separators() {
+src/filters/common.rs:291:    fn combine_raw_both_empty() {
+src/filters/common.rs:296:    fn combine_raw_stdout_only() {
+src/filters/common.rs:301:    fn combine_raw_stderr_only() {
+src/filters/common.rs:306:    fn combine_raw_both_with_newline() {
+src/filters/common.rs:312:    fn combine_raw_both_without_newline() {
+src/sandbox/macos.rs:24:    fn sandbox_init(profile: *const c_char, flags: u64, errorbuf: *mut *mut c_char) -> c_int;
+src/sandbox/macos.rs:26:    fn sandbox_free_error(errorbuf: *mut c_char);
+src/sandbox/macos.rs:29:pub fn deny_network() -> Result<()> {
+src/sandbox/unsupported.rs:8:pub fn deny_network() -> Result<()> {
+src/sandbox/mod.rs:26:pub fn deny_network() -> Result<()> {
+src/sandbox/mod.rs:42:pub fn mechanism() -> &'static str {
+src/sandbox/mod.rs:61:pub fn gate() -> Result<()> {
+src/sandbox/linux.rs:32:pub fn deny_network() -> Result<()> {
+src/exec/runner.rs:18:pub fn run(argv: &[String]) -> Result<Captured> {
+src/exec/runner.rs:38:fn exit_code_of(status: &std::process::ExitStatus) -> i32 {
+src/exec/runner.rs:46:fn exit_code_of(status: &std::process::ExitStatus) -> i32 {
+src/exec/pipeline.rs:16:pub fn run_wrapped(argv: Vec<String>) -> Result<i32> {
+src/commands/hook.rs:54:pub fn run() -> Result<i32> {
+src/ast/mod.rs:25:fn spec_for(ext: &str) -> Option<Spec> {
+src/ast/mod.rs:94:pub fn signatures(path: &Path, src: &[u8]) -> Result<FilterOutput> {
+src/ast/mod.rs:135:fn walk(node: Node, src: &[u8], depth: usize, spec: &Spec, out: &mut Vec<String>) {
+src/ast/mod.rs:153:fn header(node: Node, src: &[u8]) -> String {
+src/ast/mod.rs:163:fn line(depth: usize, s: String) -> String {
+src/ast/mod.rs:167:fn oneline(s: &str) -> String {
+src/ast/mod.rs:171:fn slice(src: &[u8], start: usize, end: usize) -> &str {
+src/ast/mod.rs:175:fn node_text<'a>(node: Node, src: &'a [u8]) -> &'a str {
+src/ast/mod.rs:184:    fn sigs(name: &str, src: &str) -> String {
+src/ast/mod.rs:189:    fn rust_signatures() {
+src/ast/mod.rs:192:            "pub fn foo(a: i32) -> i32 { a }\nstruct S { x: i32 }\nimpl S { fn m(&self) {} }\n",
+src/ast/mod.rs:194:        assert!(out.contains("pub fn foo(a: i32) -> i32"));
+src/ast/mod.rs:197:        assert!(out.contains("fn m(&self)"));
+src/ast/mod.rs:202:    fn python_signatures() {
+src/ast/mod.rs:214:    fn go_signatures() {
+src/ast/mod.rs:225:    fn typescript_signatures() {
+src/ast/mod.rs:236:    fn javascript_signatures() {
+src/ast/mod.rs:247:    fn tsx_signatures() {
+src/ast/mod.rs:253:    fn unsupported_extension_errors() {
+src/commands/gc.rs:14:pub fn run(days: Option<u64>) -> Result<i32> {
+src/commands/expand.rs:11:pub fn run(id: &str) -> Result<i32> {
+src/commands/read.rs:13:pub fn run(path: &Path, signatures: bool) -> Result<i32> {
+src/commands/doctor.rs:25:pub fn run() -> Result<i32> {
+src/commands/doctor.rs:30:pub fn run() -> Result<i32> {
+src/commands/doctor.rs:56:        fn is_blocked(&self) -> bool {
+src/commands/doctor.rs:60:        fn describe(&self) -> String {
+src/commands/doctor.rs:75:    fn errno() -> i32 {
+src/commands/doctor.rs:79:    fn is_block_errno(e: i32) -> bool {
+src/commands/doctor.rs:84:    fn loopback_addr(port: u16) -> libc::sockaddr_in {
+src/commands/doctor.rs:99:    fn probe_tcp_connect() -> Outcome {
+src/commands/doctor.rs:130:    fn probe_udp_sendto() -> Outcome {
+src/commands/doctor.rs:164:    fn probe_all() -> Snapshot {
+src/commands/doctor.rs:171:    pub(super) fn run() -> Result<i32> {
+src/store/id.rs:8:pub fn content_id(bytes: &[u8]) -> String {
+src/commands/install.rs:37:fn layout(user: bool) -> Result<Layout> {
+src/commands/install.rs:64:fn display_paths(user: bool) -> (&'static str, &'static str, &'static str) {
+src/commands/install.rs:77:fn hook_command() -> Result<String> {
+src/commands/install.rs:89:pub fn run(user: bool) -> Result<i32> {
+src/commands/install.rs:138:pub fn uninstall(user: bool) -> Result<i32> {
+src/commands/install.rs:174:fn is_hush_hook(cmd: &str) -> bool {
+src/commands/install.rs:178:fn entry_has_hush_hook(entry: &Value) -> bool {
+src/commands/install.rs:191:fn install_hook(path: &Path, hook_cmd: &str) -> Result<bool> {
+src/commands/install.rs:216:fn remove_hook(path: &Path) -> Result<bool> {
+src/commands/install.rs:237:fn read_json(path: &Path) -> Result<Value> {
+src/commands/install.rs:250:fn write_json(path: &Path, v: &Value) -> Result<()> {
+src/commands/install.rs:259:fn add_import(path: &Path, import_line: &str) -> Result<bool> {
+src/commands/install.rs:278:fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
+src/store/mod.rs:60:    pub fn open() -> Result<Self> {
+src/store/mod.rs:68:    pub fn put(&self, original: &[u8], m: PutMeta) -> Result<String> {
+src/store/mod.rs:98:    pub fn get(&self, id: &str) -> Result<Vec<u8>> {
+src/store/mod.rs:111:    pub fn objects_dir(&self) -> &PathBuf {
+src/store/mod.rs:117:fn validate_id(id: &str) -> Result<()> {
+src/store/mod.rs:124:fn now_unix() -> u64 {
+src/store/mod.rs:132:fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+src/store/mod.rs:150:    fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
+src/commands/stats.rs:18:fn approx_tokens(bytes: u64) -> u64 {
+src/commands/stats.rs:22:pub fn run() -> Result<i32> {
