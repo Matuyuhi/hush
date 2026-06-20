@@ -31,6 +31,9 @@ jobs:
           rustup default stable
           rustc --version
 
+      # bump は稀な手動ジョブ。ここで cargo build が Cargo.lock を更新するため、
+      # 事前に算出する cache key と保存内容がズレて共有キーを汚染しうる。価値も低いので
+      # キャッシュは敢えて入れない（ci.yml / release.yml は Cargo.lock を変えないので入れる）。
       - name: Compute next version, bump, and open a PR
         env:
           GH_TOKEN: ${{ github.token }}
