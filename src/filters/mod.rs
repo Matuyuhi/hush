@@ -34,6 +34,7 @@ pub struct FilterInput {
 
 /// フィルタの出力。フッタ付与・ストア保存は pipeline 側（finalize）で行うため、
 /// フィルタ自身は本文と「削った原文」だけを返す純粋関数に保つ。
+#[derive(Debug)]
 pub struct FilterOutput {
     /// 表示するフィルタ名（フッタに出る）。
     pub filter_name: &'static str,

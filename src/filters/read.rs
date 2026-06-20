@@ -39,14 +39,9 @@ pub fn run_file(path: &Path, signatures: bool) -> Result<FilterOutput> {
 
 #[cfg(feature = "ast")]
 fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
-    // 当面 Rust のみ。他言語は拡張子で振り分けて足せる。
-    match path.extension().and_then(|e| e.to_str()) {
-        Some("rs") => crate::ast::rust::signatures(&bytes),
-        other => Err(Error::Filter(format!(
-            "--signatures currently supports only .rs files (got: {:?})",
-            other.unwrap_or("")
-        ))),
-    }
+    // 言語は拡張子で振り分け（rs / py / go / ts / tsx / js / jsx / mjs / cjs）。
+    // 実際の対応判定は ast::signatures が行う。
+    crate::ast::signatures(path, &bytes)
 }
 
 #[cfg(not(feature = "ast"))]
