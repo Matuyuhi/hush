@@ -1,0 +1,68 @@
+name: Bump version
+
+# 手動起動専用。patch / minor / major を選ぶと、Cargo.toml の version を上げる
+# PR を自動で開く。main は ruleset で PR 必須なので、直 push せず PR を作る。
+# その PR をマージすると release.yml が走り、新バージョンがリリースされる。
+#
+# サードパーティ Action は供給網最小化のため公式 actions/checkout のみ。残りは gh / cargo / sed。
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which semver part to bump"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustc --version
+
+      - name: Compute next version, bump, and open a PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          CUR="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          IFS='.' read -r MA MI PA <<< "$CUR"
+          case "$BUMP" in
+            major) MA=$((MA + 1)); MI=0; PA=0 ;;
+            minor) MI=$((MI + 1)); PA=0 ;;
+            patch) PA=$((PA + 1)) ;;
+          esac
+          NEW="${MA}.${MI}.${PA}"
+          echo "bump ${BUMP}: ${CUR} -> ${NEW}"
+
+          # package version は行頭 `version = "..."`（依存の version は行頭でないので無関係）。
+          sed -i -E "s/^version = \"[^\"]*\"/version = \"${NEW}\"/" Cargo.toml
+          # Cargo.lock の hush エントリは cargo に正しく更新させる（手で弄らない）。
+          cargo build --quiet
+
+          BR="bump/v${NEW}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BR"
+          git add Cargo.toml Cargo.lock
+          git commit -m "release: bump version to ${NEW} (${BUMP})"
+          git push -u origin "$BR"
+
+          gh pr create --base main --head "$BR" \
+            --title "release: v${NEW}" \
+            --body "Bump version \`${CUR}\` -> \`${NEW}\` (\`${BUMP}\`).
+
+          Merging this triggers \`release.yml\` to build, publish v${NEW}, and update the Homebrew tap.
+
+          (Opened automatically by the Bump version workflow.)"
