@@ -147,12 +147,12 @@ pub fn run(user: bool) -> Result<i32> {
 
 fn render_uninstall_result(user: bool, removed_hook: bool, removed_import: bool) {
     let scope = if user { "user" } else { "project" };
-    let (_settings_disp, hush_disp, _claude_disp) = display_paths(user);
+    let (settings_disp, hush_disp, claude_disp) = display_paths(user);
     let rows = vec![
         Row::Center(format!("hush uninstall ({scope})")),
         Row::Rule,
         Row::Line(format!(
-            "  settings.json  {}",
+            "  settings.json  {settings_disp}  ({})",
             if removed_hook {
                 "removed hook"
             } else {
@@ -160,7 +160,7 @@ fn render_uninstall_result(user: bool, removed_hook: bool, removed_import: bool)
             }
         )),
         Row::Line(format!(
-            "  CLAUDE.md      {}",
+            "  CLAUDE.md      {claude_disp}  ({})",
             if removed_import {
                 "removed @import"
             } else {
