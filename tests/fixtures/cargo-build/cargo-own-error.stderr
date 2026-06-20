@@ -1,0 +1,7 @@
+   Compiling foo v0.1.0
+error: failed to run custom build command for `foo v0.1.0`
+
+Caused by:
+  process didn't exit successfully: `build-script-build` (exit status: 101)
+  --- stderr
+  thread 'main' panicked at build.rs:3:5

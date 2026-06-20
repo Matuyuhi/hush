@@ -1,0 +1,57 @@
+name: Compression report
+
+# 圧縮率の可視化（装飾）。gate（ci.yml）とは分離して、落ちても本体 CI を壊さない。
+#   - main への push  -> job summary に表を掲示
+#   - PR に 'compression-report' ラベル -> その PR にコメントとして表を投稿
+# floor 割れの検知は ci.yml の `cargo test`（meets_minimum_compression）が担う。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    # main push、または 'compression-report' ラベルが付いた時だけ動かす。
+    if: github.event_name == 'push' || github.event.label.name == 'compression-report'
+    runs-on: ubuntu-24.04
+    steps:
+      # Action は供給網を増やさないよう公式の checkout / cache のみ（commit SHA 固定）。
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustc --version
+
+      - name: Cache cargo & target
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Generate report
+        # writes_report のみ実行。floor 割れでこのジョブが落ちないよう gate テストは回さない。
+        run: cargo test --test compression writes_report -- --nocapture
+
+      - name: Publish to job summary (push to main)
+        if: github.event_name == 'push'
+        run: cat target/compression-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR (labeled)
+        # fork からの PR は GITHUB_TOKEN が read-only でコメントできない点に注意。
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file target/compression-report.md
