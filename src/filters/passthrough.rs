@@ -5,7 +5,9 @@
 //! - 連続する同一行の dedup（回数表示）
 //! - 長すぎる場合は先頭のみ表示し、原文は expand へ回す
 
-use super::common::{collapse_blank_runs, combine_raw, dedup_consecutive, truncate_head};
+use super::common::{
+    collapse_blank_runs, combine_raw, dedup_consecutive, strip_ansi, truncate_head,
+};
 use super::{FilterInput, FilterOutput};
 use crate::error::Result;
 
@@ -13,9 +15,11 @@ const MAX_LINES: usize = 40;
 const HEAD: usize = 30;
 
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
-    // 表示用テキスト（stdout + 必要なら stderr）。
-    let mut display = String::from_utf8_lossy(&input.stdout).into_owned();
-    let stderr = String::from_utf8_lossy(&input.stderr);
+    // 表示用テキスト（stdout + 必要なら stderr）。色コードは除去する。
+    let stdout_text = String::from_utf8_lossy(&input.stdout);
+    let stderr_text = String::from_utf8_lossy(&input.stderr);
+    let mut display = strip_ansi(&stdout_text);
+    let stderr = strip_ansi(&stderr_text);
     if !stderr.trim().is_empty() {
         if !display.is_empty() && !display.ends_with('\n') {
             display.push('\n');
