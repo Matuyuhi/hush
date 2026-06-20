@@ -263,6 +263,43 @@ mod tests {
     }
 
     #[test]
+    fn dedup_consecutive_empty() {
+        let lines: Vec<&str> = vec![];
+        let expected: Vec<String> = vec![];
+        assert_eq!(dedup_consecutive(&lines), expected);
+    }
+
+    #[test]
+    fn dedup_consecutive_single() {
+        let lines = vec!["a"];
+        assert_eq!(dedup_consecutive(&lines), vec!["a".to_string()]);
+    }
+
+    #[test]
+    fn dedup_consecutive_no_duplicates() {
+        let lines = vec!["a", "b", "c"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_consecutive_all_duplicates() {
+        let lines = vec!["a", "a", "a"];
+        assert_eq!(dedup_consecutive(&lines), vec!["a  (x3)".to_string()]);
+    }
+
+    #[test]
+    fn dedup_consecutive_mixed() {
+        let lines = vec!["a", "a", "b", "c", "c"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec!["a  (x2)".to_string(), "b".to_string(), "c  (x2)".to_string()]
+        );
+    }
+
+    #[test]
     fn dedup_all_collapses_scattered_dups() {
         let lines = vec!["warn", "info", "warn", "warn", "info"];
         // 最初の出現順を保ち、各ユニーク行を1回・回数付き。
