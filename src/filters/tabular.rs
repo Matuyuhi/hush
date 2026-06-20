@@ -28,6 +28,11 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         .map(|s| (*s).to_string())
         .collect();
 
+    // ヘッダ行はあるが非空のデータ行が無い場合も表ではないので汎用圧縮へ。
+    if rows.is_empty() {
+        return passthrough::run(input);
+    }
+
     let (shown_rows, truncated) = truncate_head_tail(rows, MAX_ROWS, HEAD_ROWS, TAIL_ROWS);
 
     let mut out = Vec::with_capacity(shown_rows.len() + 1);
@@ -104,6 +109,18 @@ mod tests {
         let input = FilterInput {
             argv: vec!["df".into()],
             stdout: b"only one line\n".to_vec(),
+            stderr: Vec::new(),
+        };
+        let out = run(&input).unwrap();
+        assert_eq!(out.filter_name, "passthrough");
+    }
+
+    #[test]
+    fn header_but_no_data_falls_back() {
+        // ヘッダ行はあるが以降が空行のみ → passthrough。
+        let input = FilterInput {
+            argv: vec!["ps".into()],
+            stdout: b"PID  TTY  CMD\n\n\n".to_vec(),
             stderr: Vec::new(),
         };
         let out = run(&input).unwrap();
