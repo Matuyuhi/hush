@@ -44,10 +44,12 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     for l in &lines {
         match l.split_once(':') {
             Some((file, _)) if !file.is_empty() => {
-                if !counts.contains_key(file) {
+                if let Some(count) = counts.get_mut(file) {
+                    *count += 1;
+                } else {
                     order.push(file.to_string());
+                    counts.insert(file.to_string(), 1);
                 }
-                *counts.entry(file.to_string()).or_insert(0) += 1;
             }
             // ファイル名なし（単一ファイル grep 等）→ グルーピング不能。
             _ => return passthrough::run(input),

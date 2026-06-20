@@ -1,0 +1,100 @@
+=== RUN   TestModule01
+--- PASS: TestModule01 (0.01s)
+=== RUN   TestModule02
+--- PASS: TestModule02 (0.02s)
+=== RUN   TestModule03
+--- PASS: TestModule03 (0.03s)
+=== RUN   TestModule04
+--- PASS: TestModule04 (0.04s)
+=== RUN   TestModule05
+--- PASS: TestModule05 (0.05s)
+=== RUN   TestModule06
+--- PASS: TestModule06 (0.06s)
+=== RUN   TestModule07
+--- PASS: TestModule07 (0.07s)
+=== RUN   TestModule08
+--- PASS: TestModule08 (0.08s)
+=== RUN   TestModule09
+--- PASS: TestModule09 (0.00s)
+=== RUN   TestModule10
+--- PASS: TestModule10 (0.01s)
+=== RUN   TestModule11
+--- PASS: TestModule11 (0.02s)
+=== RUN   TestModule12
+--- PASS: TestModule12 (0.03s)
+=== RUN   TestModule13
+--- PASS: TestModule13 (0.04s)
+=== RUN   TestModule14
+--- PASS: TestModule14 (0.05s)
+=== RUN   TestModule15
+--- PASS: TestModule15 (0.06s)
+=== RUN   TestModule16
+--- PASS: TestModule16 (0.07s)
+=== RUN   TestModule17
+--- PASS: TestModule17 (0.08s)
+=== RUN   TestModule18
+--- PASS: TestModule18 (0.00s)
+=== RUN   TestModule19
+--- PASS: TestModule19 (0.01s)
+=== RUN   TestModule20
+--- PASS: TestModule20 (0.02s)
+=== RUN   TestModule21
+--- PASS: TestModule21 (0.03s)
+=== RUN   TestModule22
+--- PASS: TestModule22 (0.04s)
+=== RUN   TestModule23
+--- PASS: TestModule23 (0.05s)
+=== RUN   TestModule24
+--- PASS: TestModule24 (0.06s)
+=== RUN   TestModule25
+--- PASS: TestModule25 (0.07s)
+=== RUN   TestModule26
+--- PASS: TestModule26 (0.08s)
+=== RUN   TestModule27
+--- PASS: TestModule27 (0.00s)
+=== RUN   TestModule28
+--- PASS: TestModule28 (0.01s)
+=== RUN   TestModule29
+--- PASS: TestModule29 (0.02s)
+=== RUN   TestModule30
+--- PASS: TestModule30 (0.03s)
+=== RUN   TestModule31
+--- PASS: TestModule31 (0.04s)
+=== RUN   TestModule32
+--- PASS: TestModule32 (0.05s)
+=== RUN   TestModule33
+--- PASS: TestModule33 (0.06s)
+=== RUN   TestModule34
+--- PASS: TestModule34 (0.07s)
+=== RUN   TestModule35
+--- PASS: TestModule35 (0.08s)
+=== RUN   TestModule36
+--- PASS: TestModule36 (0.00s)
+=== RUN   TestModule37
+--- PASS: TestModule37 (0.01s)
+=== RUN   TestModule38
+--- PASS: TestModule38 (0.02s)
+=== RUN   TestModule39
+--- PASS: TestModule39 (0.03s)
+=== RUN   TestModule40
+--- PASS: TestModule40 (0.04s)
+=== RUN   TestModule41
+--- PASS: TestModule41 (0.05s)
+=== RUN   TestModule42
+--- PASS: TestModule42 (0.06s)
+=== RUN   TestModule43
+--- PASS: TestModule43 (0.07s)
+=== RUN   TestModule44
+--- PASS: TestModule44 (0.08s)
+=== RUN   TestModule45
+--- PASS: TestModule45 (0.00s)
+=== RUN   TestPayment_Charge
+--- FAIL: TestPayment_Charge (0.12s)
+    payment_test.go:88: expected status 200, got 500
+=== RUN   TestPayment_Refund
+--- FAIL: TestPayment_Refund (0.09s)
+    payment_test.go:142: refund amount mismatch: want 1200, got 0
+FAIL
+exit status 1
+FAIL	github.com/example/app/payment	0.301s
+ok  	github.com/example/app/core	0.045s

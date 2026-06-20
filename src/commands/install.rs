@@ -35,30 +35,29 @@ struct Layout {
 }
 
 fn layout(user: bool) -> Result<Layout> {
-    if user {
+    let (cd, claude_md, import_line) = if user {
         let home = std::env::var_os("HOME")
             .filter(|h| !h.is_empty())
             .ok_or_else(|| Error::Msg("HOME is not set".into()))?;
         let cd = PathBuf::from(home).join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cd.join("CLAUDE.md"),
-            import_line: "@HUSH.md".to_string(),
-            claude_dir: cd,
-        })
+        (cd.clone(), cd.join("CLAUDE.md"), "@HUSH.md".to_string())
     } else {
         let cwd = std::env::current_dir()
             .map_err(|e| Error::Msg(format!("cannot get current directory: {e}")))?;
-        let cd = cwd.join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cwd.join("CLAUDE.md"),
-            import_line: "@.claude/HUSH.md".to_string(),
-            claude_dir: cd,
-        })
-    }
+        (
+            cwd.join(".claude"),
+            cwd.join("CLAUDE.md"),
+            "@.claude/HUSH.md".to_string(),
+        )
+    };
+
+    Ok(Layout {
+        settings: cd.join("settings.json"),
+        hush_md: cd.join("HUSH.md"),
+        claude_md,
+        import_line,
+        claude_dir: cd,
+    })
 }
 
 /// 表示用の短いパス（実ファイル操作は絶対パスを使う）。戻り値は (settings, hush, claude)。
@@ -74,31 +73,26 @@ fn display_paths(user: bool) -> (&'static str, &'static str, &'static str) {
     }
 }
 
+/// Bash向けに安全にパスを単一引用符で囲む。
+fn escape_path_for_bash(path: &str) -> String {
+    format!("'{}'", path.replace('\'', "'\\''"))
+}
+
 /// settings.json に書く hook コマンド（hush の絶対パス + " hook"）。
 fn hook_command() -> Result<String> {
     let exe = std::env::current_exe()
         .map_err(|e| Error::Msg(format!("cannot get executable path: {e}")))?;
     let p = exe.to_string_lossy().into_owned();
-    // パスに空白が含まれてもよう単一引用符で囲む（単一引用符を含む稀なパスは素のまま）。
-    if p.contains('\'') {
-        Ok(format!("{p} hook"))
-    } else {
-        Ok(format!("'{p}' hook"))
-    }
+    Ok(format!("{} hook", escape_path_for_bash(&p)))
 }
 
-pub fn run(user: bool) -> Result<i32> {
-    let lay = layout(user)?;
-    fs::create_dir_all(&lay.claude_dir)
-        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
-
-    fs::write(&lay.hush_md, HUSH_MD)
-        .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
-
-    let cmd = hook_command()?;
-    let added_hook = install_hook(&lay.settings, &cmd)?;
-    let added_import = add_import(&lay.claude_md, &lay.import_line)?;
-
+fn render_install_result(
+    user: bool,
+    added_hook: bool,
+    added_import: bool,
+    cmd: &str,
+    import_line: &str,
+) {
     let scope = if user { "user" } else { "project" };
     let (settings_disp, hush_disp, claude_disp) = display_paths(user);
     let rows = vec![
@@ -115,7 +109,7 @@ pub fn run(user: bool) -> Result<i32> {
         Row::Line(format!(
             "  CLAUDE.md      {claude_disp}  ({})",
             if added_import {
-                format!("added {}", lay.import_line)
+                format!("added {}", import_line)
             } else {
                 "already present".to_string()
             }
@@ -133,21 +127,32 @@ pub fn run(user: bool) -> Result<i32> {
     ];
     println!();
     ui::render(&rows);
+}
+
+pub fn run(user: bool) -> Result<i32> {
+    let lay = layout(user)?;
+    fs::create_dir_all(&lay.claude_dir)
+        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
+
+    fs::write(&lay.hush_md, HUSH_MD)
+        .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
+
+    let cmd = hook_command()?;
+    let added_hook = install_hook(&lay.settings, &cmd)?;
+    let added_import = add_import(&lay.claude_md, &lay.import_line)?;
+
+    render_install_result(user, added_hook, added_import, &cmd, &lay.import_line);
     Ok(0)
 }
 
-pub fn uninstall(user: bool) -> Result<i32> {
-    let lay = layout(user)?;
-    let removed_hook = remove_hook(&lay.settings)?;
-    let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
-
+fn render_uninstall_result(user: bool, removed_hook: bool, removed_import: bool) {
     let scope = if user { "user" } else { "project" };
-    let (_settings_disp, hush_disp, _claude_disp) = display_paths(user);
+    let (settings_disp, hush_disp, claude_disp) = display_paths(user);
     let rows = vec![
         Row::Center(format!("hush uninstall ({scope})")),
         Row::Rule,
         Row::Line(format!(
-            "  settings.json  {}",
+            "  settings.json  {settings_disp}  ({})",
             if removed_hook {
                 "removed hook"
             } else {
@@ -155,7 +160,7 @@ pub fn uninstall(user: bool) -> Result<i32> {
             }
         )),
         Row::Line(format!(
-            "  CLAUDE.md      {}",
+            "  CLAUDE.md      {claude_disp}  ({})",
             if removed_import {
                 "removed @import"
             } else {
@@ -166,6 +171,14 @@ pub fn uninstall(user: bool) -> Result<i32> {
     ];
     println!();
     ui::render(&rows);
+}
+
+pub fn uninstall(user: bool) -> Result<i32> {
+    let lay = layout(user)?;
+    let removed_hook = remove_hook(&lay.settings)?;
+    let removed_import = remove_import(&lay.claude_md, &lay.import_line)?;
+
+    render_uninstall_result(user, removed_hook, removed_import);
     Ok(0)
 }
 
@@ -305,4 +318,31 @@ fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
             .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))?;
     }
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_escape_path_for_bash() {
+        assert_eq!(
+            escape_path_for_bash("/usr/local/bin/hush"),
+            "'/usr/local/bin/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path with spaces/hush"),
+            "'/path with spaces/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path/with/'quotes'/hush"),
+            "'/path/with/'\\''quotes'\\''/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("C:\\Program Files\\hush.exe"),
+            "'C:\\Program Files\\hush.exe'"
+        );
+        assert_eq!(escape_path_for_bash("simple"), "'simple'");
+        assert_eq!(escape_path_for_bash("'"), "''\\'''");
+    }
 }

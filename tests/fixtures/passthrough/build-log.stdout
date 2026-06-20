@@ -1,0 +1,215 @@
+> app@1.0.0 build /home/ci/project
+> webpack --mode production
+
+asset bundle.01.js 1.2 MiB [emitted] [minimized] (name: chunk-01)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.02.js 1.2 MiB [emitted] [minimized] (name: chunk-02)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.03.js 1.2 MiB [emitted] [minimized] (name: chunk-03)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.04.js 1.2 MiB [emitted] [minimized] (name: chunk-04)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.05.js 1.2 MiB [emitted] [minimized] (name: chunk-05)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.06.js 1.2 MiB [emitted] [minimized] (name: chunk-06)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.07.js 1.2 MiB [emitted] [minimized] (name: chunk-07)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.08.js 1.2 MiB [emitted] [minimized] (name: chunk-08)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.09.js 1.2 MiB [emitted] [minimized] (name: chunk-09)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.10.js 1.2 MiB [emitted] [minimized] (name: chunk-10)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.11.js 1.2 MiB [emitted] [minimized] (name: chunk-11)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.12.js 1.2 MiB [emitted] [minimized] (name: chunk-12)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.13.js 1.2 MiB [emitted] [minimized] (name: chunk-13)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.14.js 1.2 MiB [emitted] [minimized] (name: chunk-14)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.15.js 1.2 MiB [emitted] [minimized] (name: chunk-15)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.16.js 1.2 MiB [emitted] [minimized] (name: chunk-16)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.17.js 1.2 MiB [emitted] [minimized] (name: chunk-17)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.18.js 1.2 MiB [emitted] [minimized] (name: chunk-18)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.19.js 1.2 MiB [emitted] [minimized] (name: chunk-19)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.20.js 1.2 MiB [emitted] [minimized] (name: chunk-20)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.21.js 1.2 MiB [emitted] [minimized] (name: chunk-21)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.22.js 1.2 MiB [emitted] [minimized] (name: chunk-22)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.23.js 1.2 MiB [emitted] [minimized] (name: chunk-23)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.24.js 1.2 MiB [emitted] [minimized] (name: chunk-24)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.25.js 1.2 MiB [emitted] [minimized] (name: chunk-25)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.26.js 1.2 MiB [emitted] [minimized] (name: chunk-26)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.27.js 1.2 MiB [emitted] [minimized] (name: chunk-27)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.28.js 1.2 MiB [emitted] [minimized] (name: chunk-28)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.29.js 1.2 MiB [emitted] [minimized] (name: chunk-29)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.30.js 1.2 MiB [emitted] [minimized] (name: chunk-30)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.31.js 1.2 MiB [emitted] [minimized] (name: chunk-31)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.32.js 1.2 MiB [emitted] [minimized] (name: chunk-32)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.33.js 1.2 MiB [emitted] [minimized] (name: chunk-33)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.34.js 1.2 MiB [emitted] [minimized] (name: chunk-34)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.35.js 1.2 MiB [emitted] [minimized] (name: chunk-35)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.36.js 1.2 MiB [emitted] [minimized] (name: chunk-36)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.37.js 1.2 MiB [emitted] [minimized] (name: chunk-37)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.38.js 1.2 MiB [emitted] [minimized] (name: chunk-38)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.39.js 1.2 MiB [emitted] [minimized] (name: chunk-39)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.40.js 1.2 MiB [emitted] [minimized] (name: chunk-40)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.41.js 1.2 MiB [emitted] [minimized] (name: chunk-41)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.42.js 1.2 MiB [emitted] [minimized] (name: chunk-42)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.43.js 1.2 MiB [emitted] [minimized] (name: chunk-43)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.44.js 1.2 MiB [emitted] [minimized] (name: chunk-44)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.45.js 1.2 MiB [emitted] [minimized] (name: chunk-45)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.46.js 1.2 MiB [emitted] [minimized] (name: chunk-46)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.47.js 1.2 MiB [emitted] [minimized] (name: chunk-47)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.48.js 1.2 MiB [emitted] [minimized] (name: chunk-48)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.49.js 1.2 MiB [emitted] [minimized] (name: chunk-49)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.50.js 1.2 MiB [emitted] [minimized] (name: chunk-50)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.51.js 1.2 MiB [emitted] [minimized] (name: chunk-51)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.52.js 1.2 MiB [emitted] [minimized] (name: chunk-52)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.53.js 1.2 MiB [emitted] [minimized] (name: chunk-53)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.54.js 1.2 MiB [emitted] [minimized] (name: chunk-54)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.55.js 1.2 MiB [emitted] [minimized] (name: chunk-55)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.56.js 1.2 MiB [emitted] [minimized] (name: chunk-56)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.57.js 1.2 MiB [emitted] [minimized] (name: chunk-57)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.58.js 1.2 MiB [emitted] [minimized] (name: chunk-58)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.59.js 1.2 MiB [emitted] [minimized] (name: chunk-59)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.60.js 1.2 MiB [emitted] [minimized] (name: chunk-60)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.61.js 1.2 MiB [emitted] [minimized] (name: chunk-61)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.62.js 1.2 MiB [emitted] [minimized] (name: chunk-62)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.63.js 1.2 MiB [emitted] [minimized] (name: chunk-63)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.64.js 1.2 MiB [emitted] [minimized] (name: chunk-64)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.65.js 1.2 MiB [emitted] [minimized] (name: chunk-65)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.66.js 1.2 MiB [emitted] [minimized] (name: chunk-66)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.67.js 1.2 MiB [emitted] [minimized] (name: chunk-67)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.68.js 1.2 MiB [emitted] [minimized] (name: chunk-68)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.69.js 1.2 MiB [emitted] [minimized] (name: chunk-69)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+asset bundle.70.js 1.2 MiB [emitted] [minimized] (name: chunk-70)
+WARNING in ./src/legacy/module.js
+Module Warning: deprecated API usage
+
+webpack 5.91.0 compiled with 70 warnings in 12043 ms

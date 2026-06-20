@@ -11,7 +11,7 @@ hush is pre-1.0; only the latest release receives security fixes.
 
 | Version       | Supported |
 | ------------- | --------- |
-| latest 0.1.x  | yes       |
+| latest 0.2.x  | yes       |
 | anything older | no       |
 
 ## Reporting a vulnerability

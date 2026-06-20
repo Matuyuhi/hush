@@ -1,0 +1,69 @@
+diff --git a/src/filters/mod.rs b/src/filters/mod.rs
+index 1a2b3c4..5d6e7f8 100644
+--- a/src/filters/mod.rs
++++ b/src/filters/mod.rs
+@@ -10,6 +10,7 @@ use crate::store::Store;
+ pub mod cargo_build;
+ pub mod cargo_test;
+ pub mod common;
++pub mod compression;
+ pub mod find;
+ pub mod git_diff;
+ pub mod git_log;
+@@ -28,6 +29,9 @@ pub struct FilterInput {
+     pub argv: Vec<String>,
+     pub stdout: Vec<u8>,
+     pub stderr: Vec<u8>,
++    // ベンチで使うラベル（コマンド名）。
++    pub label: Option<String>,
++    // 後段で差し替えるためのフック。
+ }
+
+ /// argv に応じてフィルタを選択する。未対応コマンドは passthrough。
+@@ -52,7 +56,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+     let a0 = input.argv.first().map(String::as_str).unwrap_or("");
+     let a1 = input.argv.get(1).map(String::as_str).unwrap_or("");
+     match (a0, a1) {
+-        ("git", "status") => git_status::run(input),
++        ("git", "status" | "st") => git_status::run(input),
+         ("git", "diff") => git_diff::run(input),
+         ("git", "log") => git_log::run(input),
+         _ => passthrough::run(input),
+diff --git a/src/main.rs b/src/main.rs
+index aaa1111..bbb2222 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -1,11 +1,3 @@
+-#[cfg(feature = "ast")]
+-mod ast;
+-mod cli;
+-mod commands;
+-mod error;
+-mod exec;
+-mod filters;
+-
+ use clap::Parser;
+
+ fn main() {
+@@ -17,7 +9,7 @@ fn main() {
+     let cli = cli::Cli::parse();
+     let code = match run(cli.cmd) {
+         Ok(code) => code,
+-        Err(e) => {
++        Err(e) => {
+             eprintln!("hush: {e}");
+             1
+         }
+diff --git a/README.md b/README.md
+index ccc3333..ddd4444 100644
+--- a/README.md
++++ b/README.md
+@@ -42,3 +42,8 @@ hush wraps a dev command and compresses its output.
+
+ ## Stats
+
++Run `hush stats` to see how much has been compressed.
++
++The compression ratio per command is tracked in CI and posted to the job
++summary on every push to main, so regressions in compaction are visible.
++
