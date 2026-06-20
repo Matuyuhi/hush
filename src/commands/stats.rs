@@ -136,18 +136,18 @@ pub fn run() -> Result<i32> {
     let mut rows: Vec<(String, (u64, u64, u64))> = by_filter.into_iter().collect();
     rows.sort_by_key(|(_, (_, ob, cb))| std::cmp::Reverse(ob.saturating_sub(*cb)));
     let frows: Vec<(String, String, String, String, String)> = rows
-        .iter()
+        .into_iter()
         .map(|(f, (c, ob, cb))| {
-            let r = if *ob > 0 {
-                100.0 * ob.saturating_sub(*cb) as f64 / *ob as f64
+            let r = if ob > 0 {
+                100.0 * ob.saturating_sub(cb) as f64 / ob as f64
             } else {
                 0.0
             };
             (
-                f.clone(),
+                f,
                 format!("{c}x"),
-                human_bytes(*ob),
-                human_bytes(*cb),
+                human_bytes(ob),
+                human_bytes(cb),
                 format!("{r:.0}%"),
             )
         })
