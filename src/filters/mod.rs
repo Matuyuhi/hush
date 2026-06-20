@@ -10,6 +10,7 @@ use std::path::Path;
 use crate::error::Result;
 use crate::store::Store;
 
+pub mod cargo_build;
 pub mod cargo_test;
 pub mod common;
 pub mod find;
@@ -53,6 +54,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("git", "diff") => git_diff::run(input),
         ("git", "log") => git_log::run(input),
         ("cargo", "test") => cargo_test::run(input),
+        ("cargo", "build" | "clippy" | "check") => cargo_build::run(input),
         ("grep", _) => grep::run(input),
         ("find", _) => find::run(input),
         ("ls", _) => ls::run(input),
