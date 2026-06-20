@@ -59,3 +59,70 @@ pub fn commas(n: u64) -> String {
     }
     out
 }
+
+/// 1000 進数で K/M/B にスケールしたカウント表記（token 数など）。
+/// 例: 453 -> "453", 4001 -> "4.0K", 250000 -> "250K", 1_200_000 -> "1.2M"。
+pub fn human_count(n: u64) -> String {
+    let (val, suffix) = if n < 1_000 {
+        return n.to_string();
+    } else if n < 1_000_000 {
+        (n as f64 / 1e3, "K")
+    } else if n < 1_000_000_000 {
+        (n as f64 / 1e6, "M")
+    } else {
+        (n as f64 / 1e9, "B")
+    };
+    // 100 以上は小数を省いて締める（例 250K）。
+    if val >= 100.0 {
+        format!("{val:.0}{suffix}")
+    } else {
+        format!("{val:.1}{suffix}")
+    }
+}
+
+/// 1000 進数のバイト表記。例: 999 -> "999 B", 16_005 -> "16.0 KB", 1_200_000 -> "1.2 MB"。
+pub fn human_bytes(n: u64) -> String {
+    let (val, suffix) = if n < 1_000 {
+        return format!("{n} B");
+    } else if n < 1_000_000 {
+        (n as f64 / 1e3, "KB")
+    } else if n < 1_000_000_000 {
+        (n as f64 / 1e6, "MB")
+    } else {
+        (n as f64 / 1e9, "GB")
+    };
+    if val >= 100.0 {
+        format!("{val:.0} {suffix}")
+    } else {
+        format!("{val:.1} {suffix}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn human_count_scales() {
+        assert_eq!(human_count(453), "453");
+        assert_eq!(human_count(4_001), "4.0K");
+        assert_eq!(human_count(250_000), "250K");
+        assert_eq!(human_count(1_200_000), "1.2M");
+        assert_eq!(human_count(3_400_000_000), "3.4B");
+    }
+
+    #[test]
+    fn human_bytes_scales() {
+        assert_eq!(human_bytes(999), "999 B");
+        assert_eq!(human_bytes(16_005), "16.0 KB");
+        assert_eq!(human_bytes(1_200_000), "1.2 MB");
+        assert_eq!(human_bytes(2_500_000_000), "2.5 GB");
+    }
+
+    #[test]
+    fn commas_groups_thousands() {
+        assert_eq!(commas(0), "0");
+        assert_eq!(commas(16_005), "16,005");
+        assert_eq!(commas(1_000_000), "1,000,000");
+    }
+}
