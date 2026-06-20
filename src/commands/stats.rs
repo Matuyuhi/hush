@@ -12,33 +12,11 @@ use std::fs;
 use crate::error::Result;
 use crate::sandbox;
 use crate::store::{Meta, Store};
+use crate::ui::{self, Row, commas};
 
 /// Rough token estimate (1 token ~= 4 bytes).
 fn approx_tokens(bytes: u64) -> u64 {
     bytes / 4
-}
-
-/// Center `s` within `width` columns (ASCII assumed; pads on the left).
-fn center(s: &str, width: usize) -> String {
-    let len = s.chars().count();
-    if len >= width {
-        return s.to_string();
-    }
-    " ".repeat((width - len) / 2) + s
-}
-
-/// "16005" -> "16,005"
-fn commas(n: u64) -> String {
-    let digits = n.to_string();
-    let len = digits.len();
-    let mut out = String::with_capacity(len + len / 3);
-    for (i, ch) in digits.chars().enumerate() {
-        if i > 0 && (len - i).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(ch);
-    }
-    out
 }
 
 pub fn run() -> Result<i32> {
@@ -192,34 +170,23 @@ pub fn run() -> Result<i32> {
     } else {
         format!("{count} outputs compressed")
     };
-    let footnote = "~tok = bytes/4, duplicates deduplicated";
-    let by_filter_label = "  by filter";
 
-    // Rule width = widest content line, so rules always span the content.
-    let mut width = "hush stats".chars().count();
-    for line in total_lines.iter().chain(filter_lines.iter()).chain([
-        &summary.to_string(),
-        &footnote.to_string(),
-        &by_filter_label.to_string(),
-    ]) {
-        width = width.max(line.chars().count());
-    }
-    let rule = "-".repeat(width);
+    let mut rows = vec![
+        Row::Center("hush stats".to_string()),
+        Row::Rule,
+        Row::Center(summary),
+        Row::Rule,
+    ];
+    rows.extend(total_lines.into_iter().map(Row::Line));
+    rows.push(Row::Rule);
+    rows.push(Row::Line("  by filter".to_string()));
+    rows.extend(filter_lines.into_iter().map(Row::Line));
+    rows.push(Row::Rule);
+    rows.push(Row::Center(
+        "~tok = bytes/4, duplicates deduplicated".to_string(),
+    ));
 
     println!();
-    println!("{}", center("hush stats", width));
-    println!("{rule}");
-    println!("{}", center(&summary, width));
-    println!("{rule}");
-    for line in &total_lines {
-        println!("{line}");
-    }
-    println!("{rule}");
-    println!("{by_filter_label}");
-    for line in &filter_lines {
-        println!("{line}");
-    }
-    println!("{rule}");
-    println!("{}", center(footnote, width));
+    ui::render(&rows);
     Ok(0)
 }

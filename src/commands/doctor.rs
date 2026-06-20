@@ -169,53 +169,78 @@ mod unix_impl {
     }
 
     pub(super) fn run() -> Result<i32> {
-        println!("hush doctor — non-transmission sandbox check\n");
-        println!("  platform  : {}", std::env::consts::OS);
-        println!("  mechanism : {}", sandbox::mechanism());
-        println!();
+        use crate::ui::{self, Row};
 
-        // 1) Pre-gate: confirm the path is open (proves the probe is real).
+        // Gather first (pre-gate -> apply gate -> post-gate), then render, so the
+        // framed block can size itself to the content.
         let before = probe_all();
-        println!("  pre-gate probes (expected to pass):");
-        println!("    TCP connect 127.0.0.1:9 : {}", before.tcp.describe());
-        println!("    UDP sendto  127.0.0.1:9 : {}", before.udp.describe());
-        println!();
+        let gate = sandbox::deny_network();
+        let after = if gate.is_ok() {
+            Some(probe_all())
+        } else {
+            None
+        };
 
-        // 2) Apply the gate (doctor uses deny_network directly to show the raw result).
-        match sandbox::deny_network() {
-            Ok(()) => println!("  gate      : applied ✓\n"),
-            Err(e) => {
-                println!("  gate      : FAILED ✗  ({e})\n");
-                println!("  verdict   : FAIL — could not apply the sandbox");
-                return Ok(1);
-            }
-        }
+        let mut rows = vec![
+            Row::Center("hush doctor".to_string()),
+            Row::Rule,
+            Row::Line(format!("  {:<10} {}", "platform", std::env::consts::OS)),
+            Row::Line(format!("  {:<10} {}", "mechanism", sandbox::mechanism())),
+            Row::Rule,
+            Row::Line("  pre-gate probes (expected to pass)".to_string()),
+            Row::Line(format!(
+                "    TCP connect 127.0.0.1:9   {}",
+                before.tcp.describe()
+            )),
+            Row::Line(format!(
+                "    UDP sendto  127.0.0.1:9   {}",
+                before.udp.describe()
+            )),
+            Row::Rule,
+        ];
 
-        // 3) Post-gate: confirm the same probes are now blocked.
-        let after = probe_all();
-        println!("  post-gate probes (expected to be blocked):");
-        println!("    TCP connect 127.0.0.1:9 : {}", after.tcp.describe());
-        println!("    UDP sendto  127.0.0.1:9 : {}", after.udp.describe());
-        println!();
+        let Some(after) = after else {
+            let e = gate.unwrap_err();
+            rows.push(Row::Line(format!("  gate       FAILED ({e})")));
+            rows.push(Row::Rule);
+            rows.push(Row::Center(
+                "verdict: FAIL - could not apply the sandbox".to_string(),
+            ));
+            println!();
+            ui::render(&rows);
+            return Ok(1);
+        };
+
+        rows.push(Row::Line("  gate       applied".to_string()));
+        rows.push(Row::Rule);
+        rows.push(Row::Line(
+            "  post-gate probes (expected to be blocked)".to_string(),
+        ));
+        rows.push(Row::Line(format!(
+            "    TCP connect 127.0.0.1:9   {}",
+            after.tcp.describe()
+        )));
+        rows.push(Row::Line(format!(
+            "    UDP sendto  127.0.0.1:9   {}",
+            after.udp.describe()
+        )));
+        rows.push(Row::Rule);
 
         // Verdict: both must be blocked after the gate (required for PASS).
         let post_blocked = after.tcp.is_blocked() && after.udp.is_blocked();
         // Credibility check: were they open before the gate?
         let pre_open = !before.tcp.is_blocked() || !before.udp.is_blocked();
-
-        if post_blocked {
-            if pre_open {
-                println!("  verdict   : PASS — the gate blocked outbound network");
-            } else {
-                println!(
-                    "  verdict   : PASS — outbound network is blocked\n\
-                     (note: already blocked before the gate; an outer sandbox may be present)"
-                );
-            }
-            Ok(0)
+        let verdict = if post_blocked && pre_open {
+            "verdict: PASS - the gate blocked outbound network"
+        } else if post_blocked {
+            "verdict: PASS - outbound network is blocked (already blocked pre-gate)"
         } else {
-            println!("  verdict   : FAIL — outbound network is NOT blocked after the gate");
-            Ok(1)
-        }
+            "verdict: FAIL - outbound network is NOT blocked after the gate"
+        };
+        rows.push(Row::Center(verdict.to_string()));
+
+        println!();
+        ui::render(&rows);
+        Ok(if post_blocked { 0 } else { 1 })
     }
 }

@@ -9,6 +9,7 @@ use std::time::{Duration, SystemTime};
 use crate::error::Result;
 use crate::sandbox;
 use crate::store::Store;
+use crate::ui::{self, Row};
 
 pub fn run(days: Option<u64>) -> Result<i32> {
     // 子プロセスを起動しないので起動直後にゲート。
@@ -25,7 +26,12 @@ pub fn run(days: Option<u64>) -> Result<i32> {
     let read = match fs::read_dir(dir) {
         Ok(r) => r,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            println!("hush gc: no artifacts yet");
+            println!();
+            ui::render(&[
+                Row::Center("hush gc".to_string()),
+                Row::Rule,
+                Row::Line("  no artifacts yet".to_string()),
+            ]);
             return Ok(0);
         }
         Err(e) => return Err(e.into()),
@@ -53,14 +59,16 @@ pub fn run(days: Option<u64>) -> Result<i32> {
         }
     }
 
+    let mut rows = vec![Row::Center("hush gc".to_string()), Row::Rule];
     match days {
         None => {
-            println!(
-                "hush gc: {} artifacts, ~{} KiB",
-                artifact_count,
+            rows.push(Row::Line(format!(
+                "  {artifact_count} artifacts, ~{} KiB",
                 total_bytes / 1024
-            );
-            println!("  remove old ones with: hush gc --days <N>");
+            )));
+            rows.push(Row::Line(
+                "  remove old ones with: hush gc --days <N>".to_string(),
+            ));
         }
         Some(d) => {
             let mut removed = 0u64;
@@ -71,9 +79,13 @@ pub fn run(days: Option<u64>) -> Result<i32> {
                 let _ = fs::remove_file(&meta_path);
                 removed += 1;
             }
-            println!("hush gc: removed {removed} artifact(s) older than {d} day(s)");
+            rows.push(Row::Line(format!(
+                "  removed {removed} artifact(s) older than {d} day(s)"
+            )));
         }
     }
 
+    println!();
+    ui::render(&rows);
     Ok(0)
 }
