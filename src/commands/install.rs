@@ -44,7 +44,11 @@ fn layout(user: bool) -> Result<Layout> {
     } else {
         let cwd = std::env::current_dir()
             .map_err(|e| Error::Msg(format!("cannot get current directory: {e}")))?;
-        (cwd.join(".claude"), cwd.join("CLAUDE.md"), "@.claude/HUSH.md".to_string())
+        (
+            cwd.join(".claude"),
+            cwd.join("CLAUDE.md"),
+            "@.claude/HUSH.md".to_string(),
+        )
     };
 
     Ok(Layout {
