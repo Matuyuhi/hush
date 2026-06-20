@@ -116,15 +116,14 @@ pub fn strip_ansi(s: &str) -> String {
             }
             Some(']') => {
                 chars.next(); // ']' を消費
-                // OSC: BEL もしくは ST (ESC \) まで読み飛ばす。
+                // OSC は BEL もしくは ST (ESC \) でのみ終端する。それ以外の ESC は
+                // payload 内とみなして読み飛ばしを継続（途中の ESC で誤終端しない）。
                 while let Some(d) = chars.next() {
                     if d == '\x07' {
                         break;
                     }
-                    if d == '\x1b' {
-                        if chars.peek() == Some(&'\\') {
-                            chars.next();
-                        }
+                    if d == '\x1b' && chars.peek() == Some(&'\\') {
+                        chars.next();
                         break;
                     }
                 }
@@ -157,8 +156,12 @@ mod tests {
 
     #[test]
     fn strip_ansi_handles_osc_and_trailing_esc() {
-        // OSC (タイトル設定など) は丸ごと消える。
+        // OSC (タイトル設定など) は丸ごと消える（BEL 終端）。
         assert_eq!(strip_ansi("\x1b]0;title\x07keep"), "keep");
+        // ST (ESC \) 終端の OSC も消える。
+        assert_eq!(strip_ansi("\x1b]0;title\x1b\\keep"), "keep");
+        // payload 内の単独 ESC では終端せず、残りが漏れない。
+        assert_eq!(strip_ansi("\x1b]0;a\x1bb\x07keep"), "keep");
         // 中途半端な末尾 ESC で無限ループ/panic しない。
         assert_eq!(strip_ansi("text\x1b"), "text");
     }
