@@ -308,10 +308,7 @@ mod tests {
     #[test]
     fn group_paths_by_dir_root_paths() {
         let paths = vec!["a.rs", "b.rs"];
-        assert_eq!(
-            group_paths_by_dir(&paths, 2),
-            vec!["./ (2 件)".to_string()]
-        );
+        assert_eq!(group_paths_by_dir(&paths, 2), vec!["./ (2 件)".to_string()]);
     }
 
     #[test]
