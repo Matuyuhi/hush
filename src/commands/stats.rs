@@ -12,7 +12,7 @@ use std::fs;
 use crate::error::Result;
 use crate::sandbox;
 use crate::store::{Meta, Store};
-use crate::ui::{self, Row, commas};
+use crate::ui::{self, Row, commas, human_bytes, human_count};
 
 /// Rough token estimate (1 token ~= 4 bytes).
 fn approx_tokens(bytes: u64) -> u64 {
@@ -84,24 +84,25 @@ pub fn run() -> Result<i32> {
     // no matter how large the numbers or how long the filter names get.
 
     // --- totals block: (label, bytes, middle, tokens) ---
+    // バイトは B/KB/MB/GB、token は K/M/B にスケール表示（行数は実数のまま）。
     let totals = [
         (
             "original",
-            commas(orig_b),
+            human_bytes(orig_b),
             format!("{} lines", commas(orig_l)),
-            commas(approx_tokens(orig_b)),
+            human_count(approx_tokens(orig_b)),
         ),
         (
             "compressed",
-            commas(comp_b),
+            human_bytes(comp_b),
             format!("{} lines", commas(comp_l)),
-            commas(approx_tokens(comp_b)),
+            human_count(approx_tokens(comp_b)),
         ),
         (
             "saved",
-            commas(saved_b),
+            human_bytes(saved_b),
             format!("({ratio:.1}%)"),
-            commas(approx_tokens(saved_b)),
+            human_count(approx_tokens(saved_b)),
         ),
     ];
     let tw_label = totals
@@ -127,7 +128,7 @@ pub fn run() -> Result<i32> {
     let total_lines: Vec<String> = totals
         .iter()
         .map(|(l, b, m, t)| {
-            format!("  {l:<tw_label$}   {b:>tw_bytes$} B   {m:>tw_mid$}   ~{t:>tw_tok$} tok")
+            format!("  {l:<tw_label$}   {b:>tw_bytes$}   {m:>tw_mid$}   ~{t:>tw_tok$} tok")
         })
         .collect();
 
@@ -145,8 +146,8 @@ pub fn run() -> Result<i32> {
             (
                 f.clone(),
                 format!("{c}x"),
-                commas(*ob),
-                commas(*cb),
+                human_bytes(*ob),
+                human_bytes(*cb),
                 format!("{r:.0}%"),
             )
         })
@@ -159,9 +160,7 @@ pub fn run() -> Result<i32> {
     let filter_lines: Vec<String> = frows
         .iter()
         .map(|(n, c, ob, cb, p)| {
-            format!(
-                "  {n:<fw_name$}   {c:>fw_cnt$}   {ob:>fw_ob$} -> {cb:>fw_cb$} B   {p:>fw_pct$}"
-            )
+            format!("  {n:<fw_name$}   {c:>fw_cnt$}   {ob:>fw_ob$} -> {cb:>fw_cb$}   {p:>fw_pct$}")
         })
         .collect();
 
