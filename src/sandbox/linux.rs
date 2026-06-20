@@ -46,7 +46,8 @@ pub fn deny_network() -> Result<()> {
     .map_err(|e| Error::Sandbox(format!("seccomp ルール構築失敗: {e}")))?;
 
     let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
-    rules.insert(libc::SYS_socket as i64, socket_rules);
+    // SYS_socket は 64bit Linux では既に i64（c_long）。対応 ARCH も 64bit のみ。
+    rules.insert(libc::SYS_socket, socket_rules);
 
     // mismatch（条件に合致しない / ルール無し）= 許可、match（inet domain）= EPERM。
     let filter = SeccompFilter::new(
