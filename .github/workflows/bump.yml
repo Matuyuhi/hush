@@ -25,6 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      - name: Setup Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustc --version
+
       - name: Compute next version, bump, and open a PR
         env:
           GH_TOKEN: ${{ github.token }}
