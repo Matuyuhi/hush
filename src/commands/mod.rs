@@ -5,4 +5,6 @@
 pub mod doctor;
 pub mod expand;
 pub mod gc;
+pub mod hook;
+pub mod install;
 pub mod read;
