@@ -16,7 +16,7 @@ pub fn collapse_blank_runs(text: &str) -> String {
     out.trim_matches('\n').to_string()
 }
 
-/// 連続する同一行を畳み、`  ┄ ×N` を付けて回数を示す。
+/// 連続する同一行を畳み、`  (xN)` を付けて回数を示す（ASCII のみ）。
 pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
     let mut out = Vec::new();
     let mut i = 0;
@@ -28,11 +28,43 @@ pub fn dedup_consecutive(lines: &[&str]) -> Vec<String> {
         }
         let count = j - i;
         if count > 1 {
-            out.push(format!("{cur}  ┄ ×{count}"));
+            out.push(format!("{cur}  (x{count})"));
         } else {
             out.push(cur.to_string());
         }
         i = j;
+    }
+    out
+}
+
+/// 出現位置が離れていても同一行をまとめる（最初の出現順を保ち、2回以上は `  (xN)`）。
+/// 同じ警告が散発的に繰り返されるログ等で効く。
+///
+/// 空行（空白のみ）は dedup 対象外でそのまま残す。セクション区切りを潰さないため
+/// （連続空行は collapse_blank_runs が別途畳む）。
+pub fn dedup_all(lines: &[&str]) -> Vec<String> {
+    use std::collections::{HashMap, HashSet};
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for l in lines {
+        if !l.trim().is_empty() {
+            *counts.entry(l).or_insert(0) += 1;
+        }
+    }
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut out = Vec::new();
+    for l in lines {
+        if l.trim().is_empty() {
+            out.push((*l).to_string()); // 空行は区切りとして保持
+            continue;
+        }
+        if seen.insert(l) {
+            let c = counts[l];
+            if c > 1 {
+                out.push(format!("{l}  (x{c})"));
+            } else {
+                out.push((*l).to_string());
+            }
+        }
     }
     out
 }
@@ -219,5 +251,39 @@ mod tests {
         assert!(truncated);
         assert!(out.len() <= 5);
         assert!(out.iter().any(|l| l.contains("more lines")));
+    }
+
+    #[test]
+    fn dedup_consecutive_collapses_runs() {
+        let lines = vec!["a", "a", "a", "b", "a"];
+        assert_eq!(
+            dedup_consecutive(&lines),
+            vec!["a  (x3)".to_string(), "b".to_string(), "a".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_all_collapses_scattered_dups() {
+        let lines = vec!["warn", "info", "warn", "warn", "info"];
+        // 最初の出現順を保ち、各ユニーク行を1回・回数付き。
+        assert_eq!(
+            dedup_all(&lines),
+            vec!["warn  (x3)".to_string(), "info  (x2)".to_string()]
+        );
+    }
+
+    #[test]
+    fn dedup_all_keeps_blank_separators() {
+        // 空行は dedup されず区切りとして残る（非空行のみ集約）。
+        let lines = vec!["a", "", "b", "", "a"];
+        assert_eq!(
+            dedup_all(&lines),
+            vec![
+                "a  (x2)".to_string(),
+                String::new(),
+                "b".to_string(),
+                String::new(),
+            ]
+        );
     }
 }
