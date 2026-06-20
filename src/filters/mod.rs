@@ -22,6 +22,7 @@ pub mod ls;
 pub mod passthrough;
 pub mod read;
 pub mod render;
+pub mod tabular;
 pub mod test_runner;
 
 /// フィルタへの入力（実コマンドの取得済み出力）。
@@ -60,6 +61,9 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("pytest", _) => test_runner::run(input),
         ("jest", _) => test_runner::run(input),
         ("npx", "jest") => test_runner::run(input),
+        ("docker", "ps" | "images") => tabular::run(input),
+        ("kubectl", "get") => tabular::run(input),
+        ("ps" | "df", _) => tabular::run(input),
         ("grep", _) => grep::run(input),
         ("find", _) => find::run(input),
         ("ls", _) => ls::run(input),
