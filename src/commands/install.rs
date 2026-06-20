@@ -35,30 +35,25 @@ struct Layout {
 }
 
 fn layout(user: bool) -> Result<Layout> {
-    if user {
+    let (cd, claude_md, import_line) = if user {
         let home = std::env::var_os("HOME")
             .filter(|h| !h.is_empty())
             .ok_or_else(|| Error::Msg("HOME is not set".into()))?;
         let cd = PathBuf::from(home).join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cd.join("CLAUDE.md"),
-            import_line: "@HUSH.md".to_string(),
-            claude_dir: cd,
-        })
+        (cd.clone(), cd.join("CLAUDE.md"), "@HUSH.md".to_string())
     } else {
         let cwd = std::env::current_dir()
             .map_err(|e| Error::Msg(format!("cannot get current directory: {e}")))?;
-        let cd = cwd.join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cwd.join("CLAUDE.md"),
-            import_line: "@.claude/HUSH.md".to_string(),
-            claude_dir: cd,
-        })
-    }
+        (cwd.join(".claude"), cwd.join("CLAUDE.md"), "@.claude/HUSH.md".to_string())
+    };
+
+    Ok(Layout {
+        settings: cd.join("settings.json"),
+        hush_md: cd.join("HUSH.md"),
+        claude_md,
+        import_line,
+        claude_dir: cd,
+    })
 }
 
 /// 表示用の短いパス（実ファイル操作は絶対パスを使う）。戻り値は (settings, hush, claude)。
