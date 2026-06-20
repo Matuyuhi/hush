@@ -22,6 +22,7 @@ pub mod ls;
 pub mod passthrough;
 pub mod read;
 pub mod render;
+pub mod test_runner;
 
 /// フィルタへの入力（実コマンドの取得済み出力）。
 pub struct FilterInput {
@@ -55,6 +56,10 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("git", "log") => git_log::run(input),
         ("cargo", "test") => cargo_test::run(input),
         ("cargo", "build" | "clippy" | "check") => cargo_build::run(input),
+        ("go", "test") => test_runner::run(input),
+        ("pytest", _) => test_runner::run(input),
+        ("jest", _) => test_runner::run(input),
+        ("npx", "jest") => test_runner::run(input),
         ("grep", _) => grep::run(input),
         ("find", _) => find::run(input),
         ("ls", _) => ls::run(input),
