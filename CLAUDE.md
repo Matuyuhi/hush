@@ -19,8 +19,9 @@ cargo run -- doctor                # prove the non-transmission gate (must print
 cargo run -- git status            # run any command through hush during dev
 ```
 
-CI (`ci.yml`) runs exactly fmt / clippy(-D warnings) / build / test / `--no-default-features`
-build / `hush doctor`, on macOS + Linux — so the five commands above are the contract.
+CI (`ci.yml`) enforces, on macOS + Linux: fmt / clippy(-D warnings) / build / test /
+`--no-default-features` build / `hush doctor` — keep those green. The remaining examples are
+dev conveniences, not CI steps.
 
 ## Architecture (the big picture)
 
@@ -43,7 +44,8 @@ conspire to keep:
   `filters/common.rs` (`strip_ansi`, `collapse_blank_runs`, `dedup_all`, `truncate_head_tail`,
   `group_paths_by_dir`, `combine_raw`) — build new filters from these. When a filter elides
   anything it returns the full original in `FilterOutput.original`; `filters::finalize` then
-  stores it and appends the `[hush:… id=… ]` footer.
+  stores it and appends the footer
+  `[hush:<filter> id=<ID> lines=A->B - `hush expand <ID>` for full output]` (see `filters/render.rs`).
 
 - **Lazy expansion** (`store/`): the original output is saved content-addressed under
   `$XDG_DATA_HOME/hush` (`~/.local/share/hush`); `hush expand <id>` returns it byte-exact, so
@@ -95,5 +97,5 @@ the `Matuyuhi/homebrew-tools` tap. Third-party Actions are limited to official
 ## Note: this repo runs hush on itself
 
 `hush install` is set up here (a PostToolUse hook in the gitignored `.claude/`), so some Bash
-output may be compacted with a `[hush:… id=… ]` footer — run `hush expand <id>` for the full
-original. `hush doctor` confirms nothing is transmitted.
+output may be compacted with a `[hush:<filter> id=<ID> ...]` footer — run `hush expand <ID>` for
+the full original. `hush doctor` confirms nothing is transmitted.
