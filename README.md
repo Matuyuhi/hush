@@ -7,9 +7,9 @@ LLM coding agent burns far fewer tokens reading it. When compaction elides anyth
 the full original is stored locally and recovered on demand with `hush expand <id>`.
 If nothing is elided, `hush` prints the full output and does not create an expand id.
 
-The headline property is **non-transmission**. Before `hush` touches any output, it
+The headline property is **non-transmission**. Before `hush` filters or renders any output, it
 closes an irreversible, kernel-enforced network gate on its own process (macOS
-`sandbox_init`, Linux `seccomp`). The compression code therefore *cannot* send your
+`sandbox_init`, Linux `seccomp`). The compression/filtering code therefore *cannot* send your
 code or command output anywhere — and you can prove it: `hush doctor`.
 
 ```
