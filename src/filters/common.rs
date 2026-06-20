@@ -208,6 +208,7 @@ mod tests {
     fn collapse_blank_runs_removes_leading_and_trailing() {
         assert_eq!(collapse_blank_runs("\n\nhello\n\n"), "hello");
         assert_eq!(collapse_blank_runs("   \n\nhello\n  \n"), "hello");
+        assert_eq!(collapse_blank_runs("\t\n\nhello\n\t  \n"), "hello");
     }
 
     #[test]
