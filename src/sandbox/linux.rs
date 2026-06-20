@@ -12,7 +12,6 @@
 //!    macOS 上ではコンパイル対象外。Linux/CI でのビルド検証が必要。
 
 use std::collections::BTreeMap;
-use std::convert::TryInto;
 
 use seccompiler::{
     BpfProgram, SeccompAction, SeccompCmpArgLen, SeccompCmpOp, SeccompCondition, SeccompFilter,
@@ -28,7 +27,7 @@ const ARCH: TargetArch = TargetArch::aarch64;
 
 pub fn deny_network() -> Result<()> {
     // socket(domain, type, protocol) の domain (arg0) を見て、inet 系なら拒否する。
-    let deny_domain = |af: i64| -> std::result::Result<SeccompRule, seccompiler::Error> {
+    let deny_domain = |af: i64| -> std::result::Result<SeccompRule, seccompiler::BackendError> {
         SeccompRule::new(vec![SeccompCondition::new(
             0, // arg0 = domain
             SeccompCmpArgLen::Dword,
@@ -37,7 +36,7 @@ pub fn deny_network() -> Result<()> {
         )?])
     };
 
-    let socket_rules = vec![
+    let socket_rules = [
         deny_domain(libc::AF_INET as i64),
         deny_domain(libc::AF_INET6 as i64),
         deny_domain(libc::AF_PACKET as i64),
