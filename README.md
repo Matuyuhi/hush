@@ -3,8 +3,9 @@
 **Compress dev-command output to cut LLM token usage — and physically never transmit it.**
 
 `hush` wraps a command, runs it, and prints a compacted version of its output so an
-LLM coding agent burns far fewer tokens reading it. Nothing is thrown away: the full
-original is stored locally and recovered on demand with `hush expand <id>`.
+LLM coding agent burns far fewer tokens reading it. When compaction elides anything,
+the full original is stored locally and recovered on demand with `hush expand <id>`.
+If nothing is elided, `hush` prints the full output and does not create an expand id.
 
 The headline property is **non-transmission**. Before `hush` touches any output, it
 closes an irreversible, kernel-enforced network gate on its own process (macOS
