@@ -4,3 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+blake3 = { version = "1.8.5", default-features = false, features = ["pure"] }
+clap = { version = "4.6.1", features = ["derive"] }
+libc = "0.2.186"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+tree-sitter = { version = "0.26.9", optional = true }
+tree-sitter-rust = { version = "0.24.2", optional = true }
+
+[features]
+default = ["ast"]
+# AST シグネチャモード (hush read --signatures)。tree-sitter 一式はこの feature でのみリンク。
+# `cargo build --no-default-features` でコアのみ(AST 無依存)ビルド可能。
+ast = ["dep:tree-sitter", "dep:tree-sitter-rust"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+seccompiler = "0.5.0"
