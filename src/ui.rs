@@ -72,11 +72,12 @@ pub fn human_count(n: u64) -> String {
     } else {
         (n as f64 / 1e9, "B")
     };
-    // 100 以上は小数を省いて締める（例 250K）。
-    if val >= 100.0 {
-        format!("{val:.0}{suffix}")
+    // 1 桁に丸めてから「100 以上は整数」を判定（境界で小数が残らない）。
+    let rounded = (val * 10.0).round() / 10.0;
+    if rounded >= 100.0 {
+        format!("{rounded:.0}{suffix}")
     } else {
-        format!("{val:.1}{suffix}")
+        format!("{rounded:.1}{suffix}")
     }
 }
 
@@ -91,10 +92,11 @@ pub fn human_bytes(n: u64) -> String {
     } else {
         (n as f64 / 1e9, "GB")
     };
-    if val >= 100.0 {
-        format!("{val:.0} {suffix}")
+    let rounded = (val * 10.0).round() / 10.0;
+    if rounded >= 100.0 {
+        format!("{rounded:.0} {suffix}")
     } else {
-        format!("{val:.1} {suffix}")
+        format!("{rounded:.1} {suffix}")
     }
 }
 
@@ -109,6 +111,8 @@ mod tests {
         assert_eq!(human_count(250_000), "250K");
         assert_eq!(human_count(1_200_000), "1.2M");
         assert_eq!(human_count(3_400_000_000), "3.4B");
+        // 丸めで 100 を跨ぐ境界は整数表記（小数を残さない）。
+        assert_eq!(human_count(99_950), "100K");
     }
 
     #[test]
@@ -117,6 +121,7 @@ mod tests {
         assert_eq!(human_bytes(16_005), "16.0 KB");
         assert_eq!(human_bytes(1_200_000), "1.2 MB");
         assert_eq!(human_bytes(2_500_000_000), "2.5 GB");
+        assert_eq!(human_bytes(99_950), "100 KB");
     }
 
     #[test]

@@ -84,7 +84,7 @@ pub fn run() -> Result<i32> {
     // no matter how large the numbers or how long the filter names get.
 
     // --- totals block: (label, bytes, middle, tokens) ---
-    // バイトは KB/MB、token は K/M にスケールして表示（行数は実数のまま）。
+    // バイトは B/KB/MB/GB、token は K/M/B にスケール表示（行数は実数のまま）。
     let totals = [
         (
             "original",
