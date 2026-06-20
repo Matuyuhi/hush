@@ -156,16 +156,11 @@ mod unix_impl {
         }
     }
 
-    struct Snapshot {
-        tcp: Outcome,
-        udp: Outcome,
-    }
-
-    fn probe_all() -> Snapshot {
-        Snapshot {
-            tcp: probe_tcp_connect(),
-            udp: probe_udp_sendto(),
-        }
+    fn probe_all() -> Vec<(&'static str, Outcome)> {
+        vec![
+            ("TCP connect 127.0.0.1:9", probe_tcp_connect()),
+            ("UDP sendto  127.0.0.1:9", probe_udp_sendto()),
+        ]
     }
 
     pub(super) fn run() -> Result<i32> {
@@ -188,16 +183,16 @@ mod unix_impl {
             Row::Line(format!("  {:<10} {}", "mechanism", sandbox::mechanism())),
             Row::Rule,
             Row::Line("  pre-gate probes (expected to pass)".to_string()),
-            Row::Line(format!(
-                "    TCP connect 127.0.0.1:9   {}",
-                before.tcp.describe()
-            )),
-            Row::Line(format!(
-                "    UDP sendto  127.0.0.1:9   {}",
-                before.udp.describe()
-            )),
-            Row::Rule,
         ];
+
+        for (name, outcome) in &before {
+            rows.push(Row::Line(format!(
+                "    {:<26} {}",
+                name,
+                outcome.describe()
+            )));
+        }
+        rows.push(Row::Rule);
 
         let Some(after) = after else {
             let e = gate.unwrap_err();
@@ -216,20 +211,20 @@ mod unix_impl {
         rows.push(Row::Line(
             "  post-gate probes (expected to be blocked)".to_string(),
         ));
-        rows.push(Row::Line(format!(
-            "    TCP connect 127.0.0.1:9   {}",
-            after.tcp.describe()
-        )));
-        rows.push(Row::Line(format!(
-            "    UDP sendto  127.0.0.1:9   {}",
-            after.udp.describe()
-        )));
+
+        for (name, outcome) in &after {
+            rows.push(Row::Line(format!(
+                "    {:<26} {}",
+                name,
+                outcome.describe()
+            )));
+        }
         rows.push(Row::Rule);
 
         // Verdict: both must be blocked after the gate (required for PASS).
-        let post_blocked = after.tcp.is_blocked() && after.udp.is_blocked();
+        let post_blocked = after.iter().all(|(_, outcome)| outcome.is_blocked());
         // Credibility check: were they open before the gate?
-        let pre_open = !before.tcp.is_blocked() || !before.udp.is_blocked();
+        let pre_open = before.iter().any(|(_, outcome)| !outcome.is_blocked());
         let verdict = if post_blocked && pre_open {
             "verdict: PASS - the gate blocked outbound network"
         } else if post_blocked {
