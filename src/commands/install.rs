@@ -35,30 +35,29 @@ struct Layout {
 }
 
 fn layout(user: bool) -> Result<Layout> {
-    if user {
+    let (cd, claude_md, import_line) = if user {
         let home = std::env::var_os("HOME")
             .filter(|h| !h.is_empty())
             .ok_or_else(|| Error::Msg("HOME is not set".into()))?;
         let cd = PathBuf::from(home).join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cd.join("CLAUDE.md"),
-            import_line: "@HUSH.md".to_string(),
-            claude_dir: cd,
-        })
+        (cd.clone(), cd.join("CLAUDE.md"), "@HUSH.md".to_string())
     } else {
         let cwd = std::env::current_dir()
             .map_err(|e| Error::Msg(format!("cannot get current directory: {e}")))?;
-        let cd = cwd.join(".claude");
-        Ok(Layout {
-            settings: cd.join("settings.json"),
-            hush_md: cd.join("HUSH.md"),
-            claude_md: cwd.join("CLAUDE.md"),
-            import_line: "@.claude/HUSH.md".to_string(),
-            claude_dir: cd,
-        })
-    }
+        (
+            cwd.join(".claude"),
+            cwd.join("CLAUDE.md"),
+            "@.claude/HUSH.md".to_string(),
+        )
+    };
+
+    Ok(Layout {
+        settings: cd.join("settings.json"),
+        hush_md: cd.join("HUSH.md"),
+        claude_md,
+        import_line,
+        claude_dir: cd,
+    })
 }
 
 /// 表示用の短いパス（実ファイル操作は絶対パスを使う）。戻り値は (settings, hush, claude)。
@@ -74,17 +73,17 @@ fn display_paths(user: bool) -> (&'static str, &'static str, &'static str) {
     }
 }
 
+/// Bash向けに安全にパスを単一引用符で囲む。
+fn escape_path_for_bash(path: &str) -> String {
+    format!("'{}'", path.replace('\'', "'\\''"))
+}
+
 /// settings.json に書く hook コマンド（hush の絶対パス + " hook"）。
 fn hook_command() -> Result<String> {
     let exe = std::env::current_exe()
         .map_err(|e| Error::Msg(format!("cannot get executable path: {e}")))?;
     let p = exe.to_string_lossy().into_owned();
-    // パスに空白が含まれてもよう単一引用符で囲む（単一引用符を含む稀なパスは素のまま）。
-    if p.contains('\'') {
-        Ok(format!("{p} hook"))
-    } else {
-        Ok(format!("'{p}' hook"))
-    }
+    Ok(format!("{} hook", escape_path_for_bash(&p)))
 }
 
 fn render_install_result(
@@ -319,4 +318,31 @@ fn remove_import(path: &Path, import_line: &str) -> Result<bool> {
             .map_err(|e| Error::Msg(format!("cannot write {}: {e}", path.display())))?;
     }
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_escape_path_for_bash() {
+        assert_eq!(
+            escape_path_for_bash("/usr/local/bin/hush"),
+            "'/usr/local/bin/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path with spaces/hush"),
+            "'/path with spaces/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("/path/with/'quotes'/hush"),
+            "'/path/with/'\\''quotes'\\''/hush'"
+        );
+        assert_eq!(
+            escape_path_for_bash("C:\\Program Files\\hush.exe"),
+            "'C:\\Program Files\\hush.exe'"
+        );
+        assert_eq!(escape_path_for_bash("simple"), "'simple'");
+        assert_eq!(escape_path_for_bash("'"), "''\\'''");
+    }
 }
