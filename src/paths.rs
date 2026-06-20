@@ -22,7 +22,9 @@ pub fn data_dir() -> Result<PathBuf> {
         .ok_or_else(|| Error::Msg("cannot determine data directory: HOME is not set".into()))?;
     let p = PathBuf::from(home);
     if !p.is_absolute() {
-        return Err(Error::Msg("cannot determine data directory: HOME is not an absolute path".into()));
+        return Err(Error::Msg(
+            "cannot determine data directory: HOME is not an absolute path".into(),
+        ));
     }
     Ok(p.join(".local/share/hush"))
 }
