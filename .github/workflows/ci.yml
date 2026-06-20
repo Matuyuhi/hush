@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS は sandbox_init、Linux は seccomp の経路を両方検証する。
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      # サードパーティ Action は供給網を増やすため、公式の checkout のみ使用。
+      # Rust はランナー同梱の rustup を使う。
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup component add rustfmt clippy
+          rustc --version
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Clippy (deny warnings)
+        # Linux ジョブではここで初めて sandbox/linux.rs(seccompiler) がコンパイルされ、
+        # Linux ゲートのビルド検証になる。
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Test
+        run: cargo test --verbose
+
+      - name: Build core only (AST feature off)
+        run: cargo build --no-default-features
+
+      - name: Doctor — 非送信サンドボックスが実際にネットを遮断するか実測
+        # PASS で exit 0、FAIL で exit 1。各プラットフォームでゲートが効くことを保証する。
+        run: cargo run --quiet -- doctor
