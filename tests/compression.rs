@@ -175,21 +175,17 @@ fn measure(c: &Case) -> Measured {
     }
 }
 
-fn build_report(rows: &[Measured]) -> String {
-    let mut md = String::new();
-    md.push_str("## hush compression report\n\n");
-    md.push_str(
-        "Compaction ratio per command on fixed sample inputs (`tests/fixtures/`). \
-         Bytes = raw stdout+stderr vs compacted body (expand footer excluded).\n\n",
-    );
-    md.push_str("| command | filter | bytes | compact | ratio | lines |\n");
-    md.push_str("|---|---|--:|--:|--:|--:|\n");
+/// markdown の表だけ（README にもこの部分を埋め込むため独立させる）。
+fn report_table(rows: &[Measured]) -> String {
+    let mut t = String::new();
+    t.push_str("| command | filter | bytes | compact | ratio | lines |\n");
+    t.push_str("|---|---|--:|--:|--:|--:|\n");
     let mut tot_o = 0usize;
     let mut tot_c = 0usize;
     for m in rows {
         tot_o += m.orig_bytes;
         tot_c += m.compact_bytes;
-        md.push_str(&format!(
+        t.push_str(&format!(
             "| {} | {} | {} | {} | {:.0}% | {} -> {} |\n",
             m.cmd,
             m.filter,
@@ -205,9 +201,20 @@ fn build_report(rows: &[Measured]) -> String {
     } else {
         0.0
     };
-    md.push_str(&format!(
+    t.push_str(&format!(
         "| **total** | | **{tot_o}** | **{tot_c}** | **{tot_ratio:.0}%** | |\n"
     ));
+    t
+}
+
+fn build_report(rows: &[Measured]) -> String {
+    let mut md = String::new();
+    md.push_str("## hush compression report\n\n");
+    md.push_str(
+        "Compaction ratio per command on fixed sample inputs (`tests/fixtures/`). \
+         Bytes = raw stdout+stderr vs compacted body (expand footer excluded).\n\n",
+    );
+    md.push_str(&report_table(rows));
     md
 }
 
@@ -246,4 +253,42 @@ fn writes_report() {
 
     // `cargo test -- --nocapture` でも確認できるよう標準出力にも出す。
     println!("\n{md}");
+}
+
+const README_START: &str = "<!-- compression-report:start -->";
+const README_END: &str = "<!-- compression-report:end -->";
+
+/// README のマーカー間に最新の圧縮率表を流し込む。
+///
+/// 副作用（README 書き換え）を避けるため、`HUSH_UPDATE_README` が立っている時だけ実行する。
+/// 通常の `cargo test` では no-op。CI は main への push（= ラベル付き PR のマージ後）で
+/// このテストを env 付きで走らせ、差分があれば更新 PR を自動で開く。
+#[test]
+fn sync_readme() {
+    if std::env::var_os("HUSH_UPDATE_README").is_none() {
+        return;
+    }
+    let rows: Vec<Measured> = CASES.iter().map(measure).collect();
+    let table = report_table(&rows);
+
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("README.md");
+    let readme = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read README: {e}"));
+
+    let start = readme
+        .find(README_START)
+        .expect("README is missing the compression-report start marker");
+    let end = readme
+        .find(README_END)
+        .expect("README is missing the compression-report end marker");
+    assert!(start < end, "README markers are out of order");
+
+    let updated = format!(
+        "{}\n{}{}",
+        &readme[..start + README_START.len()],
+        table,
+        &readme[end..]
+    );
+    if updated != readme {
+        fs::write(&path, updated).unwrap_or_else(|e| panic!("write README: {e}"));
+    }
 }

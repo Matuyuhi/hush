@@ -97,6 +97,31 @@ hush <command>:
 - **The store** is content-addressed; identical outputs dedupe, and `expand` is byte-
   exact. `hush gc [--days N]` prunes it.
 
+## Compression
+
+Measured compaction ratio per command over fixed sample inputs (`tests/fixtures/`);
+bytes are raw stdout+stderr vs the compacted body (the `expand` footer is excluded).
+Regenerated from the fixtures and refreshed automatically by CI after each merge to `main`.
+
+<!-- compression-report:start -->
+| command | filter | bytes | compact | ratio | lines |
+|---|---|--:|--:|--:|--:|
+| git status | git-status | 883 | 583 | 34% | 27 -> 22 |
+| git diff | git-diff | 2032 | 94 | 95% | 69 -> 4 |
+| git log | git-log | 12811 | 1541 | 88% | 363 -> 30 |
+| cargo build | cargo-build | 390 | 183 | 53% | 16 -> 4 |
+| cargo build (cargo err) | cargo-build | 225 | 200 | 11% | 7 -> 6 |
+| cargo test | cargo-test | 2464 | 331 | 87% | 49 -> 6 |
+| go test | test | 2783 | 294 | 89% | 100 -> 8 |
+| pytest | test | 6957 | 4111 | 41% | 95 -> 59 |
+| docker ps | tabular | 6503 | 4121 | 37% | 43 -> 28 |
+| grep | grep | 9788 | 868 | 91% | 138 -> 37 |
+| find | find | 779 | 258 | 67% | 39 -> 14 |
+| ls | ls | 57214 | 1809 | 97% | 927 -> 31 |
+| build log (passthrough) | passthrough | 9708 | 2157 | 78% | 215 -> 37 |
+| **total** | | **112537** | **16550** | **85%** | |
+<!-- compression-report:end -->
+
 ## Platform support
 
 macOS and Linux (both verified in CI, including `hush doctor` on each). Other
