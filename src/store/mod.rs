@@ -147,7 +147,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_validate_id() {
+    fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
         // Valid cases (alphanumeric, typical hex output)
         assert!(validate_id("abcdef123456").is_ok());
         assert!(validate_id("0123456789").is_ok());
