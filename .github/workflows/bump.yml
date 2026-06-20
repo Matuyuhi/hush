@@ -31,6 +31,18 @@ jobs:
           rustup default stable
           rustc --version
 
+      - name: Cache cargo & target
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: Compute next version, bump, and open a PR
         env:
           GH_TOKEN: ${{ github.token }}
