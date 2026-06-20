@@ -50,6 +50,31 @@ pub fn truncate_head(lines: Vec<String>, max: usize, head: usize) -> (Vec<String
     }
 }
 
+/// 行数が max を超えたら「先頭 head 行 ＋ 中略マーカー ＋ 末尾 tail 行」に切り詰める。
+/// エラーやサマリは末尾に出がちなので、汎用出力では末尾も残す。
+/// `lines.len() > max` なら必ず切り詰め、出力が max 行（マーカー込み）を超えないよう
+/// head/tail をクランプする。戻り値は (表示行, 切り詰めたか)。
+pub fn truncate_head_tail(
+    lines: Vec<String>,
+    max: usize,
+    head: usize,
+    tail: usize,
+) -> (Vec<String>, bool) {
+    if lines.len() <= max {
+        return (lines, false);
+    }
+    // マーカー 1 行分を引いた予算に head/tail を収める（出力を max 行以下に保つ）。
+    let budget = max.saturating_sub(1);
+    let head = head.min(budget);
+    let tail = tail.min(budget - head);
+    let omitted = lines.len() - head - tail;
+    let mut out = Vec::with_capacity(head + tail + 1);
+    out.extend_from_slice(&lines[..head]);
+    out.push(format!("... {omitted} more lines (hush expand for full)"));
+    out.extend_from_slice(&lines[lines.len() - tail..]);
+    (out, true)
+}
+
 /// ファイルパス群を親ディレクトリ単位でまとめる。
 /// 同一ディレクトリに threshold 件以上あれば `dir/ (N 件)` に畳む。
 pub fn group_paths_by_dir(paths: &[&str], threshold: usize) -> Vec<String> {
@@ -140,7 +165,7 @@ pub fn strip_ansi(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::strip_ansi;
+    use super::*;
 
     #[test]
     fn strip_ansi_removes_csi_color() {
@@ -164,5 +189,35 @@ mod tests {
         assert_eq!(strip_ansi("\x1b]0;a\x1bb\x07keep"), "keep");
         // 中途半端な末尾 ESC で無限ループ/panic しない。
         assert_eq!(strip_ansi("text\x1b"), "text");
+    }
+
+    #[test]
+    fn truncate_head_tail_keeps_both_ends() {
+        let lines: Vec<String> = (1..=50).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head_tail(lines, 40, 3, 2);
+        assert!(truncated);
+        assert_eq!(out.first().unwrap(), "1");
+        assert_eq!(out[2], "3");
+        assert!(out[3].contains("more lines"));
+        assert_eq!(out.last().unwrap(), "50");
+        assert_eq!(out.len(), 3 + 1 + 2);
+    }
+
+    #[test]
+    fn truncate_head_tail_noop_when_small() {
+        let lines: Vec<String> = (1..=5).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head_tail(lines.clone(), 40, 3, 2);
+        assert!(!truncated);
+        assert_eq!(out, lines);
+    }
+
+    #[test]
+    fn truncate_head_tail_clamps_to_max() {
+        // head+tail+marker が max を超える指定でも、出力は max 行以下になる。
+        let lines: Vec<String> = (1..=50).map(|n| n.to_string()).collect();
+        let (out, truncated) = truncate_head_tail(lines, 5, 4, 4);
+        assert!(truncated);
+        assert!(out.len() <= 5);
+        assert!(out.iter().any(|l| l.contains("more lines")));
     }
 }
