@@ -6,13 +6,14 @@
 //! - 長すぎる場合は先頭のみ表示し、原文は expand へ回す
 
 use super::common::{
-    collapse_blank_runs, combine_raw, dedup_consecutive, strip_ansi, truncate_head,
+    collapse_blank_runs, combine_raw, dedup_consecutive, strip_ansi, truncate_head_tail,
 };
 use super::{FilterInput, FilterOutput};
 use crate::error::Result;
 
 const MAX_LINES: usize = 40;
-const HEAD: usize = 30;
+const HEAD: usize = 26;
+const TAIL: usize = 10;
 
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     // 表示用テキスト（stdout + 必要なら stderr）。色コードは除去する。
@@ -35,8 +36,8 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     let lines: Vec<&str> = collapsed.lines().collect();
     let deduped = dedup_consecutive(&lines);
 
-    // 長ければ先頭のみ。
-    let (shown, truncated) = truncate_head(deduped, MAX_LINES, HEAD);
+    // 長ければ先頭＋末尾を残す（末尾のエラー/サマリを保持）。
+    let (shown, truncated) = truncate_head_tail(deduped, MAX_LINES, HEAD, TAIL);
 
     let shown_lines = shown.len();
     let compact = if shown.is_empty() {
