@@ -46,6 +46,24 @@ pub enum Cmd {
         days: Option<u64>,
     },
 
+    /// Claude Code に統合する（PostToolUse hook + HUSH.md + CLAUDE.md 追記）
+    Install {
+        /// project(.claude/) ではなく user(~/.claude/) スコープに入れる
+        #[arg(long)]
+        user: bool,
+    },
+
+    /// hush install で入れた設定を撤去する
+    Uninstall {
+        /// user(~/.claude/) スコープを対象にする
+        #[arg(long)]
+        user: bool,
+    },
+
+    /// Claude Code の PostToolUse hook 本体（内部用・stdin から JSON を受ける）
+    #[command(hide = true)]
+    Hook,
+
     /// 任意のコマンドをラップ実行し、出力を圧縮して返す
     #[command(external_subcommand)]
     Wrap(Vec<String>),
