@@ -1,24 +1,25 @@
 //! `hush hook` — Claude Code の PostToolUse hook 本体（内部用）。
 //!
-//! Claude Code は Bash 実行後、stdin に PostToolUse の JSON を渡してこれを呼ぶ。
+//! Claude Code はツール実行後、stdin に PostToolUse の JSON を渡してこれを呼ぶ。
 //! hush は出力を圧縮し、`hookSpecificOutput.updatedToolOutput` でモデルに渡る
 //! 出力を差し替える。原文は expand ストアに保存され `hush expand <id>` で復元できる。
 //!
-//! 重要（スキーマ）:
-//! - 入力の Bash 出力は `tool_response`（構造化オブジェクト `{stdout, stderr,
-//!   interrupted, isImage}`）に入る。バージョン差に備え `text` 形・文字列・旧
-//!   `tool_output`(文字列) もフォールバックで読む。
-//! - 差し替え値 `updatedToolOutput` は **そのツールの出力形に一致** していないと
-//!   Claude Code 側で無視され原文が使われる。Bash は `{stdout, stderr, interrupted,
-//!   isImage}` 形なので、その形で返す（圧縮テキストは stdout にまとめる）。
+//! 対応ツール（`ToolKind`）:
+//! - **Bash**: `tool_response`(`{stdout,stderr,interrupted,isImage}`) を per-command フィルタで圧縮。
+//! - **Read**: `tool_response`(`{type:"text", file:{content,numLines,...}}`) の本文を保守的に先頭表示へ。
 //!
-//! 大原則: **ユーザの Bash フローを絶対に壊さない**。パース失敗・非対象・
-//! ゲート失敗・フィルタ失敗など、少しでも怪しければ何も出力せず終了し（no-op）、
-//! 元の出力をそのまま通す。圧縮は「できたらやる」ベストエフォート。
-//! （形が合わず差し替えが無視されても、原文が表示されるだけで害はない。）
+//! 重要（スキーマ）:
+//! - 差し替え値 `updatedToolOutput` は **そのツールの出力形に一致** していないと
+//!   Claude Code 側で無視され原文が使われる。よって Bash は `{stdout,...}` 形、Read は
+//!   元の `tool_response` を複製して本文フィールドだけ差し替える（未知フィールドを保つ）。
+//!
+//! 大原則: **ユーザのツールフローを絶対に壊さない**。パース失敗・非対象・ゲート失敗・
+//! フィルタ失敗など、少しでも怪しければ何も出力せず終了し（no-op）、元の出力をそのまま通す。
+//! 圧縮は「できたらやる」ベストエフォート。（形が合わず差し替えが無視されても、原文が
+//! 表示されるだけで害はない。）
 
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 
@@ -26,13 +27,28 @@ use crate::error::Result;
 use crate::filters::{self, FilterInput};
 use crate::sandbox;
 
+/// 圧縮対象ツールの種別。ツール識別を1か所に集約し、parse・フィルタ選択・payload 構築の
+/// 3 箇所に散らさない（散らすと次のツール追加で形ずれバグが出る）。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ToolKind {
+    Bash,
+    Read,
+}
+
 /// パース済みの処理対象。stdin を読まず単体テストできるよう分離。
 struct HookInputs {
+    kind: ToolKind,
+    cwd: Option<String>,
+    // --- Bash ---
     command: String,
     stdout: String,
     stderr: String,
-    cwd: Option<String>,
     interrupted: bool,
+    // --- Read ---
+    /// 表示するファイルパス（store メタ用）。
+    file_path: String,
+    /// 元の `tool_response`（payload の clone-and-patch 用）。Bash では `Null`。
+    response: Value,
 }
 
 /// `tool_response` から (stdout, stderr) を取り出す。バージョン/フィールド差に強いよう複数形に対応:
@@ -60,14 +76,22 @@ fn extract_streams(tr: &Value) -> Option<(String, String)> {
     }
 }
 
-/// PostToolUse(Bash) の JSON から処理対象を取り出す。対象外なら None（=no-op）。
+/// PostToolUse の JSON から処理対象を取り出す。対象外なら None（=no-op）。
 fn parse_inputs(v: &Value) -> Option<HookInputs> {
     if v.get("hook_event_name").and_then(Value::as_str) != Some("PostToolUse") {
         return None;
     }
-    if v.get("tool_name").and_then(Value::as_str) != Some("Bash") {
-        return None;
+    let cwd = v.get("cwd").and_then(Value::as_str).map(str::to_string);
+    match v.get("tool_name").and_then(Value::as_str) {
+        Some("Bash") => parse_bash(v, cwd),
+        Some("Read") => parse_read(v, cwd),
+        _ => None,
     }
+}
+
+/// Bash の PostToolUse を処理対象に変換。出力は現行 `tool_response` 優先、旧/別形の
+/// `tool_output`(文字列) もフォールバック。
+fn parse_bash(v: &Value, cwd: Option<String>) -> Option<HookInputs> {
     let command = v
         .get("tool_input")
         .and_then(|t| t.get("command"))
@@ -80,7 +104,6 @@ fn parse_inputs(v: &Value) -> Option<HookInputs> {
         return None;
     }
 
-    // 出力: 現行は tool_response（オブジェクト/文字列）優先、旧/別形の tool_output(文字列)もフォールバック。
     let (stdout, stderr) = match tr.and_then(extract_streams) {
         Some(s) => s,
         None => (
@@ -96,29 +119,87 @@ fn parse_inputs(v: &Value) -> Option<HookInputs> {
         .and_then(|t| t.get("interrupted"))
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let cwd = v.get("cwd").and_then(Value::as_str).map(str::to_string);
 
     Some(HookInputs {
+        kind: ToolKind::Bash,
+        cwd,
         command,
         stdout,
         stderr,
-        cwd,
         interrupted,
+        file_path: String::new(),
+        response: Value::Null,
     })
 }
 
-/// Bash の出力スキーマに一致した差し替えペイロードを組む（形が違うと無視されるため）。
-/// 圧縮後テキストは stdout にまとめ、stderr は空にする。
-fn build_payload(compact: &str, interrupted: bool) -> Value {
+/// Read の PostToolUse を処理対象に変換。
+///
+/// no-op（None）にする条件:
+/// - `tool_input` に `offset`/`limit` がある（モデルが狙って読んだ窓 → 削ると逆効果）。
+/// - `tool_response.type != "text"`（画像・バイナリ等）。
+/// - 本文が空。
+fn parse_read(v: &Value, cwd: Option<String>) -> Option<HookInputs> {
+    let tool_input = v.get("tool_input")?;
+    if tool_input.get("offset").is_some() || tool_input.get("limit").is_some() {
+        return None;
+    }
+    let file_path = tool_input
+        .get("file_path")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+
+    let tr = v.get("tool_response")?;
+    if tr.get("type").and_then(Value::as_str) != Some("text") {
+        return None;
+    }
+    let content = tr
+        .get("file")
+        .and_then(|f| f.get("content"))
+        .and_then(Value::as_str)?;
+    if content.trim().is_empty() {
+        return None;
+    }
+
+    Some(HookInputs {
+        kind: ToolKind::Read,
+        cwd,
+        command: String::new(),
+        stdout: content.to_string(),
+        stderr: String::new(),
+        interrupted: false,
+        file_path,
+        response: tr.clone(),
+    })
+}
+
+/// ツールの出力形に一致した差し替えペイロードを組む（形が違うと CC に無視されるため）。
+/// 唯一の「形決定点」。
+fn build_payload(h: &HookInputs, compact: &str) -> Value {
+    let updated = match h.kind {
+        // Bash の native 形。圧縮後テキストは stdout にまとめ、stderr は空にする。
+        ToolKind::Bash => json!({
+            "stdout": compact,
+            "stderr": "",
+            "interrupted": h.interrupted,
+            "isImage": false,
+        }),
+        // Read は元の tool_response を複製し、本文フィールドだけ差し替える。
+        // 未知フィールド（type/filePath/startLine/totalLines 等）を保つので形一致しやすい。
+        ToolKind::Read => {
+            let mut u = h.response.clone();
+            if let Some(file) = u.get_mut("file").and_then(Value::as_object_mut) {
+                file.insert("content".to_string(), json!(compact));
+                // 表示行数は実態に合わせる（totalLines は真値のまま残し、モデルへの情報にする）。
+                file.insert("numLines".to_string(), json!(compact.lines().count()));
+            }
+            u
+        }
+    };
     json!({
         "hookSpecificOutput": {
             "hookEventName": "PostToolUse",
-            "updatedToolOutput": {
-                "stdout": compact,
-                "stderr": "",
-                "interrupted": interrupted,
-                "isImage": false,
-            }
+            "updatedToolOutput": updated,
         }
     })
 }
@@ -143,22 +224,38 @@ pub fn run() -> Result<i32> {
 
     let cwd = h
         .cwd
+        .clone()
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    let argv: Vec<String> = h.command.split_whitespace().map(str::to_string).collect();
-    let finput = FilterInput {
-        argv: argv.clone(),
-        stdout: h.stdout.into_bytes(),
-        stderr: h.stderr.into_bytes(),
+
+    // ツール別にフィルタを選び、store メタ用の argv を決める。
+    let (out, argv) = match h.kind {
+        ToolKind::Bash => {
+            let argv: Vec<String> = h.command.split_whitespace().map(str::to_string).collect();
+            let finput = FilterInput {
+                argv: argv.clone(),
+                stdout: h.stdout.clone().into_bytes(),
+                stderr: h.stderr.clone().into_bytes(),
+            };
+            // パイプ/複合コマンドは構造化フィルタが誤適用しうるので汎用圧縮に倒す。
+            let piped =
+                h.command.contains(['|', '&', ';', '>', '<', '`']) || h.command.contains("$(");
+            let out = if piped {
+                filters::passthrough::run(&finput)
+            } else {
+                filters::run(&finput)
+            };
+            (out, argv)
+        }
+        ToolKind::Read => {
+            let argv = vec!["read".to_string(), h.file_path.clone()];
+            // 受け取った本文を圧縮（ディスク再読込はしない）。対応言語の大きいソースは
+            // AST 署名へ畳み、それ以外は head 切り。
+            let out = filters::read::run_hook(Path::new(&h.file_path), h.stdout.as_bytes());
+            (out, argv)
+        }
     };
 
-    // パイプ/複合コマンドは構造化フィルタが誤適用しうるので汎用圧縮に倒す。
-    let piped = h.command.contains(['|', '&', ';', '>', '<', '`']) || h.command.contains("$(");
-    let out = if piped {
-        filters::passthrough::run(&finput)
-    } else {
-        filters::run(&finput)
-    };
     let Ok(out) = out else {
         return Ok(0);
     };
@@ -174,7 +271,7 @@ pub fn run() -> Result<i32> {
         return Ok(0);
     };
 
-    let payload = build_payload(&compact, h.interrupted);
+    let payload = build_payload(&h, &compact);
     if let Ok(json) = serde_json::to_string(&payload) {
         println!("{json}");
     }
@@ -218,6 +315,7 @@ mod tests {
             "cwd": "/x"
         });
         let h = parse_inputs(&v).expect("should parse");
+        assert_eq!(h.kind, ToolKind::Bash);
         assert_eq!(h.command, "ls");
         assert_eq!(h.stdout, "a\nb");
         assert_eq!(h.cwd.as_deref(), Some("/x"));
@@ -236,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_skips_non_bash_and_non_posttooluse_and_image_and_empty() {
+    fn parse_skips_non_posttooluse_and_unknown_tool_and_image_and_empty() {
         let base = |extra: Value| {
             let mut v = json!({
                 "hook_event_name": "PostToolUse",
@@ -251,8 +349,8 @@ mod tests {
         };
         // 非 PostToolUse
         assert!(parse_inputs(&base(json!({"hook_event_name": "PreToolUse"}))).is_none());
-        // 非 Bash
-        assert!(parse_inputs(&base(json!({"tool_name": "Read"}))).is_none());
+        // 未対応ツール
+        assert!(parse_inputs(&base(json!({"tool_name": "Write"}))).is_none());
         // 画像
         assert!(
             parse_inputs(&base(
@@ -264,14 +362,90 @@ mod tests {
         assert!(parse_inputs(&base(json!({"tool_response": {"stdout": "   "}}))).is_none());
     }
 
+    /// Read の実ペイロード形（CC 実測）に合わせたテスト用 JSON を組む。
+    fn read_event(content: &str, total: u64, with_window: bool) -> Value {
+        let mut tool_input = json!({"file_path": "/proj/src/main.rs"});
+        if with_window {
+            tool_input["offset"] = json!(10);
+            tool_input["limit"] = json!(20);
+        }
+        json!({
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Read",
+            "tool_input": tool_input,
+            "tool_response": {
+                "type": "text",
+                "file": {
+                    "filePath": "/proj/src/main.rs",
+                    "content": content,
+                    "numLines": total,
+                    "startLine": 1,
+                    "totalLines": total
+                }
+            },
+            "cwd": "/proj"
+        })
+    }
+
+    #[test]
+    fn parse_read_extracts_file_content() {
+        let h = parse_inputs(&read_event("alpha\nbeta", 2, false)).expect("should parse Read");
+        assert_eq!(h.kind, ToolKind::Read);
+        assert_eq!(h.stdout, "alpha\nbeta");
+        assert_eq!(h.file_path, "/proj/src/main.rs");
+        // 元 tool_response を保持している（payload の clone-and-patch 用）。
+        assert_eq!(h.response["type"], "text");
+    }
+
+    #[test]
+    fn parse_read_skips_windowed_read() {
+        // offset/limit 付き（狙った窓読み）は触らない。
+        assert!(parse_inputs(&read_event("x\ny", 2, true)).is_none());
+    }
+
+    #[test]
+    fn parse_read_skips_non_text_and_empty() {
+        // type != "text"（画像等）。
+        let mut img = read_event("x", 1, false);
+        img["tool_response"]["type"] = json!("image");
+        assert!(parse_inputs(&img).is_none());
+        // 空本文。
+        assert!(parse_inputs(&read_event("   ", 1, false)).is_none());
+    }
+
     #[test]
     fn payload_matches_bash_output_shape() {
-        let p = build_payload("compacted", false);
+        let h = HookInputs {
+            kind: ToolKind::Bash,
+            cwd: None,
+            command: "ls".to_string(),
+            stdout: String::new(),
+            stderr: String::new(),
+            interrupted: false,
+            file_path: String::new(),
+            response: Value::Null,
+        };
+        let p = build_payload(&h, "compacted");
         let u = &p["hookSpecificOutput"]["updatedToolOutput"];
         assert_eq!(p["hookSpecificOutput"]["hookEventName"], "PostToolUse");
         assert_eq!(u["stdout"], "compacted");
         assert_eq!(u["stderr"], "");
         assert_eq!(u["interrupted"], false);
         assert_eq!(u["isImage"], false);
+    }
+
+    #[test]
+    fn payload_patches_read_content_and_preserves_shape() {
+        let h = parse_inputs(&read_event("orig body", 500, false)).expect("Read");
+        let p = build_payload(&h, "trunc\nbody\n[hush:read id=abc ...]");
+        let u = &p["hookSpecificOutput"]["updatedToolOutput"];
+        // 本文だけ差し替わり、Read の native 形（type/file）は保たれる。
+        assert_eq!(u["type"], "text");
+        assert_eq!(u["file"]["content"], "trunc\nbody\n[hush:read id=abc ...]");
+        // numLines は表示行数に更新。
+        assert_eq!(u["file"]["numLines"], 3);
+        // totalLines は真値のまま残す。
+        assert_eq!(u["file"]["totalLines"], 500);
+        assert_eq!(u["file"]["filePath"], "/proj/src/main.rs");
     }
 }
