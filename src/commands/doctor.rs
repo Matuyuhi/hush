@@ -163,6 +163,32 @@ mod unix_impl {
         ]
     }
 
+    /// probe 結果を 1 行ずつ整形する。`expect_blocked` はそのフェーズで
+    /// 「ブロックされる」のが期待挙動か（pre-gate=false / post-gate=true）。
+    /// 結果が期待と一致すれば PASS、しなければ FAIL を行末に付ける。
+    fn probe_rows(probes: &[(&'static str, Outcome)], expect_blocked: bool) -> Vec<crate::ui::Row> {
+        use crate::ui::Row;
+        probes
+            .iter()
+            .map(|(name, outcome)| {
+                let status = if outcome.is_blocked() == expect_blocked {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
+                // 幅 26 に左詰めした probe 名 + 幅 19 に左詰めした結果 + ステータス。
+                // probe 名は 23 字なので 3 つの詰め空白が入る。結果も固定幅に
+                // することで、PASS/FAIL の桁が縦に揃う（記号は使わず ASCII の語）。
+                Row::Line(format!(
+                    "    {:<26}{:<19}{}",
+                    name,
+                    outcome.describe(),
+                    status
+                ))
+            })
+            .collect()
+    }
+
     pub(super) fn run() -> Result<i32> {
         use crate::ui::{self, Row};
 
@@ -185,15 +211,7 @@ mod unix_impl {
             Row::Line("  pre-gate probes (expected to pass)".to_string()),
         ];
 
-        for (name, outcome) in &before {
-            rows.push(Row::Line(format!(
-                // 幅 26 に左詰め（リテラル空白は入れない）。23 字の probe 名なら
-                // 3 つの詰め空白が入り、従来のハードコード整形と桁が一致する。
-                "    {:<26}{}",
-                name,
-                outcome.describe()
-            )));
-        }
+        rows.extend(probe_rows(&before, false));
         rows.push(Row::Rule);
 
         let Some(after) = after else {
@@ -214,15 +232,7 @@ mod unix_impl {
             "  post-gate probes (expected to be blocked)".to_string(),
         ));
 
-        for (name, outcome) in &after {
-            rows.push(Row::Line(format!(
-                // 幅 26 に左詰め（リテラル空白は入れない）。23 字の probe 名なら
-                // 3 つの詰め空白が入り、従来のハードコード整形と桁が一致する。
-                "    {:<26}{}",
-                name,
-                outcome.describe()
-            )));
-        }
+        rows.extend(probe_rows(&after, true));
         rows.push(Row::Rule);
 
         // Verdict: both must be blocked after the gate (required for PASS).
