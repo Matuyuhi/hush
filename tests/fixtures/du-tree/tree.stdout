@@ -1,0 +1,147 @@
+/home/user/proj
+|-- src
+|   |-- alpha
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- beta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- gamma
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- delta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   `-- epsilon
+|       |-- file_0.rs
+|       |-- file_1.rs
+|       |-- file_2.rs
+|       |-- file_3.rs
+|       |-- file_4.rs
+|       `-- file_5.rs
+|-- tests
+|   |-- alpha
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- beta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- gamma
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- delta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   `-- epsilon
+|       |-- file_0.rs
+|       |-- file_1.rs
+|       |-- file_2.rs
+|       |-- file_3.rs
+|       |-- file_4.rs
+|       `-- file_5.rs
+|-- docs
+|   |-- alpha
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- beta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- gamma
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   |-- delta
+|   |   |-- file_0.rs
+|   |   |-- file_1.rs
+|   |   |-- file_2.rs
+|   |   |-- file_3.rs
+|   |   |-- file_4.rs
+|   |   `-- file_5.rs
+|   `-- epsilon
+|       |-- file_0.rs
+|       |-- file_1.rs
+|       |-- file_2.rs
+|       |-- file_3.rs
+|       |-- file_4.rs
+|       `-- file_5.rs
+`-- examples
+    |-- alpha
+    |   |-- file_0.rs
+    |   |-- file_1.rs
+    |   |-- file_2.rs
+    |   |-- file_3.rs
+    |   |-- file_4.rs
+    |   `-- file_5.rs
+    |-- beta
+    |   |-- file_0.rs
+    |   |-- file_1.rs
+    |   |-- file_2.rs
+    |   |-- file_3.rs
+    |   |-- file_4.rs
+    |   `-- file_5.rs
+    |-- gamma
+    |   |-- file_0.rs
+    |   |-- file_1.rs
+    |   |-- file_2.rs
+    |   |-- file_3.rs
+    |   |-- file_4.rs
+    |   `-- file_5.rs
+    |-- delta
+    |   |-- file_0.rs
+    |   |-- file_1.rs
+    |   |-- file_2.rs
+    |   |-- file_3.rs
+    |   |-- file_4.rs
+    |   `-- file_5.rs
+    `-- epsilon
+        |-- file_0.rs
+        |-- file_1.rs
+        |-- file_2.rs
+        |-- file_3.rs
+        |-- file_4.rs
+        `-- file_5.rs
+
+24 directories, 120 files

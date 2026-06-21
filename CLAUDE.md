@@ -38,8 +38,15 @@ conspire to keep:
   Subcommands that don't spawn a child (`expand`/`gc`/`stats`/`read`) call `sandbox::gate()` first.
 
 - **Filters** (`filters/`) are the compaction. `filters/mod.rs::run` dispatches on argv
-  (`git status/diff/log`, `cargo build|clippy|check`, `cargo test`, `go test`/`pytest`/`jest`,
-  `grep`, `find`, `ls`, `docker ps`/`kubectl get`/`ps`/`df`, etc.) and falls back to `passthrough`.
+  (`git status/diff/log/show`, `diff`, `cargo build|clippy|check`, `cargo test`, `go build|vet|run`,
+  `go test`/`pytest`/`jest`/`vitest`/`mocha`/…, `tsc`/`eslint` via `node_check`, `make`,
+  `npm|pnpm|yarn|bun|pip install` via `pkg_install`, `python` tracebacks, `du`/`tree`, `grep`,
+  `find`, `ls`, `docker ps`/`kubectl get`/`ps`/`df`/`pip list`/`lsblk`/`free`/`ss` via `tabular`,
+  etc.) and falls back to `passthrough`. Two extra entry points feed the `json` filter regardless
+  of command: `wants_json(argv)` routes explicit JSON-output flags (`-o json`, `--format json`,
+  `--message-format=json`, `--json`, `-json`) to it *before* the per-command match, and
+  `passthrough::run` content-sniffs JSON/NDJSON (cheap first-byte gate) and uses `json::compact`
+  when it beats the line-based compaction.
   Each filter is a **pure** `FilterInput { argv, stdout, stderr } -> FilterOutput`; it never
   touches the store, network, or process. Shared compaction primitives live in
   `filters/common.rs` (`strip_ansi`, `collapse_blank_runs`, `dedup_all`, `truncate_head_tail`,

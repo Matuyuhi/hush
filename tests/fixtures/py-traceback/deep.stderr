@@ -1,0 +1,54 @@
+Traceback (most recent call last):
+  File "/home/user/app/settings.py", line 88, in resolve
+    return self._registry[name]
+           ~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'config'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/user/app/main.py", line 42, in <module>
+    sys.exit(run_cli())
+             ~~~~~~~^^
+  File "/home/user/app/cli.py", line 120, in run_cli
+    return dispatch(args)
+           ~~~~~~~~^^^^^^
+  File "/home/user/app/cli.py", line 137, in dispatch
+    return command.execute(ctx)
+           ~~~~~~~~~~~~~~~^^^^^
+  File "/home/user/app/commands/publish.py", line 58, in execute
+    target = self.resolve_target(ctx)
+             ~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/user/app/commands/publish.py", line 73, in resolve_target
+    return self.pipeline.run(ctx)
+           ~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/user/app/pipeline/core.py", line 211, in run
+    return self._run_stages(ctx)
+           ~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/user/app/pipeline/core.py", line 240, in _run_stages
+    stage.apply(ctx)
+    ~~~~~~~~~~~^^^^^^
+  File "/home/user/app/pipeline/stages.py", line 96, in apply
+    self.publisher.send(ctx.payload)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/user/app/pipeline/publisher.py", line 64, in send
+    cfg = self.load_config()
+          ~~~~~~~~~~~~~~~~^^
+  File "/home/user/app/pipeline/publisher.py", line 81, in load_config
+    return build_config(self.options)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/user/app/config/builder.py", line 33, in build_config
+    section = registry.resolve("config")
+              ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/user/app/config/registry.py", line 49, in resolve
+    return self._lookup(name)
+           ~~~~~~~~~~~~^^^^^^^
+  File "/home/user/app/config/registry.py", line 57, in _lookup
+    return self._store.fetch(name)
+           ~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/user/app/config/store.py", line 28, in fetch
+    return self._data[key]
+           ~~~~~~~~~~^^^^^^
+  File "/home/user/app/settings.py", line 90, in resolve
+    raise KeyError(name) from exc
+KeyError: 'config'

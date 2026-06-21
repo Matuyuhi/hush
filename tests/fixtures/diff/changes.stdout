@@ -1,0 +1,110 @@
+diff -ru old/src/server.py new/src/server.py
+--- old/src/server.py	2024-01-10 09:12:33.000000000 +0000
++++ new/src/server.py	2024-01-12 14:05:07.000000000 +0000
+@@ -1,9 +1,12 @@
+ import logging
++import os
+ from http.server import BaseHTTPRequestHandler, HTTPServer
+
+-LOG = logging.getLogger("server")
++LOG = logging.getLogger(__name__)
++DEFAULT_PORT = int(os.environ.get("PORT", "8080"))
+
+
+ class Handler(BaseHTTPRequestHandler):
+     def do_GET(self):
+-        self.send_response(200)
++        self.send_response(self.status_for(self.path))
+         self.send_header("Content-Type", "text/plain")
+         self.end_headers()
+@@ -14,6 +17,11 @@ class Handler(BaseHTTPRequestHandler):
+         self.wfile.write(b"ok")
+
++    def status_for(self, path):
++        if path == "/health":
++            return 200
++        return 404
++
+
+ def main():
+-    server = HTTPServer(("0.0.0.0", 8080), Handler)
++    server = HTTPServer(("0.0.0.0", DEFAULT_PORT), Handler)
+     LOG.info("listening")
+     server.serve_forever()
+diff -ru old/src/utils.py new/src/utils.py
+--- old/src/utils.py	2024-01-10 09:12:33.000000000 +0000
++++ new/src/utils.py	2024-01-12 14:05:07.000000000 +0000
+@@ -1,7 +1,5 @@
+-import json
+ import time
+
+
+ def now_ms():
+     return int(time.time() * 1000)
+-
+-
+-def dump(obj):
+-    return json.dumps(obj, indent=2)
+@@ -12,3 +10,6 @@ def now_ms():
+ def clamp(value, low, high):
+     return max(low, min(high, value))
++
++def is_blank(text):
++    return text is None or text.strip() == ""
+diff -ru old/config/settings.ini new/config/settings.ini
+--- old/config/settings.ini	2024-01-10 09:12:33.000000000 +0000
++++ new/config/settings.ini	2024-01-12 14:05:07.000000000 +0000
+@@ -1,8 +1,9 @@
+ [server]
+-host = 127.0.0.1
+-port = 8000
++host = 0.0.0.0
++port = 8080
+ workers = 4
+
+ [logging]
+-level = DEBUG
++level = INFO
++format = json
+diff -ru old/README.md new/README.md
+--- old/README.md	2024-01-10 09:12:33.000000000 +0000
++++ new/README.md	2024-01-12 14:05:07.000000000 +0000
+@@ -1,10 +1,14 @@
+ # example service
+
+-A small HTTP server.
++A small HTTP server with a health endpoint.
+
+ ## Usage
+
+-Run `python src/server.py` to start.
++Run `PORT=9000 python src/server.py` to start on a custom port.
++
++## Endpoints
++
++- `GET /health` returns 200 when the service is up.
+
+ ## License
+
+ MIT
+diff -ru old/tests/test_utils.py new/tests/test_utils.py
+--- old/tests/test_utils.py	2024-01-10 09:12:33.000000000 +0000
++++ new/tests/test_utils.py	2024-01-12 14:05:07.000000000 +0000
+@@ -1,11 +1,14 @@
+-from src.utils import now_ms, clamp
++from src.utils import now_ms, clamp, is_blank
+
+
+ def test_now_ms_is_positive():
+     assert now_ms() > 0
+
+
+ def test_clamp_bounds():
+     assert clamp(5, 0, 10) == 5
+     assert clamp(-1, 0, 10) == 0
+     assert clamp(20, 0, 10) == 10
++
++
++def test_is_blank():
++    assert is_blank("   ")
++    assert not is_blank("x")
