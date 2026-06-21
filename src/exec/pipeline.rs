@@ -33,7 +33,10 @@ pub fn run_wrapped(argv: Vec<String>) -> Result<i32> {
     };
 
     let out = filters::run(&input)?;
-    let rendered = filters::finalize(out, &argv, &cwd, captured.exit_code)?;
+    // 生の stdout+stderr を渡し、ANSI 除去や空白畳みでバイトが変わった場合も
+    // 原文を保存できるようにする（compact が表示に置き換わる経路なので必須）。
+    let raw = filters::common::combine_raw(&input.stdout, &input.stderr);
+    let rendered = filters::finalize(out, Some(&raw), &argv, &cwd, captured.exit_code)?;
     println!("{rendered}");
 
     // 実コマンドの exit code をそのまま伝播。

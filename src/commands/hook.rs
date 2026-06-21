@@ -168,7 +168,9 @@ pub fn run() -> Result<i32> {
         return Ok(0);
     }
 
-    let Ok(compact) = filters::finalize(out, &argv, &cwd, 0) else {
+    // hook は original=None なら上で早期 return 済み（実出力を残す）。ここに来るのは
+    // 必ず original=Some なので raw は不要。
+    let Ok(compact) = filters::finalize(out, None, &argv, &cwd, 0) else {
         return Ok(0);
     };
 

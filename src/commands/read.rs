@@ -15,7 +15,8 @@ pub fn run(path: &Path, signatures: bool) -> Result<i32> {
     let out = filters::read::run_file(path, signatures)?;
     let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
     let argv = vec!["read".to_string(), path.to_string_lossy().into_owned()];
-    let rendered = filters::finalize(out, &argv, &cwd, 0)?;
+    // read はフィルタが原文（ファイル全体）を original に積むので raw は渡さない。
+    let rendered = filters::finalize(out, None, &argv, &cwd, 0)?;
     println!("{rendered}");
     Ok(0)
 }

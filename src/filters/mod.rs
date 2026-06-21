@@ -49,7 +49,9 @@ pub struct FilterOutput {
     pub filter_name: &'static str,
     /// 圧縮済み本文（末尾改行なし）。
     pub compact: String,
-    /// 圧縮で原文の一部を削ったときの全文（None = 無削減なので保存不要）。
+    /// 圧縮で原文の一部を削ったときの全文（行・要素の削減を伴うフィルタが積む）。
+    /// `None` でも、`finalize` に生バイト列が渡されていて compact がそれと一致しない
+    /// 場合は原文を保存する（ANSI 除去・空白畳み等のバイト差を expand で復元するため）。
     pub original: Option<Vec<u8>>,
     /// 原文の行数。
     pub orig_lines: usize,
@@ -165,31 +167,69 @@ fn is_json_word(s: &str) -> bool {
     s == "json" || s == "jsonl" || s == "ndjson" || s.starts_with("json-")
 }
 
-/// フィルタ出力を最終文字列にする。原文があればストアに保存し expand フッタを付ける。
-pub fn finalize(out: FilterOutput, argv: &[String], cwd: &Path, exit_code: i32) -> Result<String> {
-    match &out.original {
+/// compact が生バイト列と（末尾改行 1 個の差を除いて）一致しないか。
+/// ANSI 除去・空白畳み・末尾空白除去などで「行数は変わらないがバイトは変わった」
+/// ケースを検出するために使う。
+fn body_differs(compact: &str, raw: &[u8]) -> bool {
+    raw.strip_suffix(b"\n").unwrap_or(raw) != compact.as_bytes()
+}
+
+/// フィルタ出力を最終文字列にする。原文を保存すべきなら保存し expand フッタを付ける。
+///
+/// 保存する条件は次のいずれか:
+/// - フィルタが `original` を明示した（行・要素を削った）
+/// - `raw`（生の stdout+stderr）が渡されていて、compact がそれと一致しない
+///   （末尾改行 1 個の差は無視）
+///
+/// 後者により、ANSI 除去や空白畳みで「行数は変わらないがバイトは変わった」出力でも、
+/// `hush <command>` の表示（圧縮後本文に置き換わる経路）でバイト厳密に復元できる。
+/// `raw` が `None` の経路（`hush read` など、フィルタが原文保存を完結させている）は
+/// `original` のみで判断する。
+pub fn finalize(
+    out: FilterOutput,
+    raw: Option<&[u8]>,
+    argv: &[String],
+    cwd: &Path,
+    exit_code: i32,
+) -> Result<String> {
+    let FilterOutput {
+        filter_name,
+        compact,
+        original,
+        orig_lines,
+        shown_lines,
+    } = out;
+
+    let stored: Option<Vec<u8>> = match original {
+        Some(orig) => Some(orig),
+        None => match raw {
+            Some(r) if body_differs(&compact, r) => Some(r.to_vec()),
+            _ => None,
+        },
+    };
+
+    match stored {
         Some(orig) => {
             let store = Store::open()?;
             let cwd_s = cwd.to_string_lossy();
             let id = store.put(
-                orig,
+                &orig,
                 crate::store::PutMeta {
                     command: argv,
                     cwd: &cwd_s,
                     exit_code,
-                    filter: out.filter_name,
-                    orig_lines: out.orig_lines,
-                    compact_bytes: out.compact.len(),
-                    compact_lines: out.shown_lines,
+                    filter: filter_name,
+                    orig_lines,
+                    compact_bytes: compact.len(),
+                    compact_lines: shown_lines,
                 },
             )?;
             Ok(format!(
-                "{}{}",
-                out.compact,
-                render::footer(out.filter_name, &id, out.orig_lines, out.shown_lines)
+                "{compact}{}",
+                render::footer(filter_name, &id, orig_lines, shown_lines)
             ))
         }
-        None => Ok(out.compact),
+        None => Ok(compact),
     }
 }
 
@@ -259,5 +299,23 @@ mod tests {
         assert!(!wants_json(&argv(&["find", ".", "-o", "json"])));
         // ただし純粋な JSON 要求フラグは引き続き拾う。
         assert!(wants_json(&argv(&["somecmd", "--format", "json"])));
+    }
+
+    #[test]
+    fn body_differs_ignores_single_trailing_newline() {
+        // 末尾改行 1 個の差は「変わっていない」とみなす（compact は末尾改行なし規約）。
+        assert!(!body_differs("hello", b"hello\n"));
+        assert!(!body_differs("hello", b"hello"));
+        assert!(!body_differs("a\nb", b"a\nb\n"));
+    }
+
+    #[test]
+    fn body_differs_detects_ansi_and_content_changes() {
+        // ANSI 除去で行数は同じでもバイトが変わる → 原文保存が必要。
+        assert!(body_differs("red", b"\x1b[31mred\x1b[0m\n"));
+        // 末尾空白の除去もバイト差。
+        assert!(body_differs("a", b"a   \n"));
+        // 行が減るのは当然 differ。
+        assert!(body_differs("a\nb", b"a\nb\nc\n"));
     }
 }
