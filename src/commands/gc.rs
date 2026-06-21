@@ -4,6 +4,7 @@
 //! `--days N`: N 日より古いアーティファクト（原文＋メタ）を削除。
 
 use std::fs;
+use std::thread;
 use std::time::{Duration, SystemTime};
 
 use crate::error::Result;
@@ -71,14 +72,26 @@ pub fn run(days: Option<u64>) -> Result<i32> {
             ));
         }
         Some(d) => {
-            let mut removed = 0u64;
-            for id in &old_ids {
-                let obj = dir.join(id);
-                let meta_path = dir.join(format!("{id}.json"));
-                let _ = fs::remove_file(&obj);
-                let _ = fs::remove_file(&meta_path);
-                removed += 1;
+            let removed = old_ids.len() as u64;
+            if !old_ids.is_empty() {
+                let num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+                let chunk_size = old_ids.len().div_ceil(num_threads);
+
+                let dir_ref = dir.as_path();
+                thread::scope(|s| {
+                    for chunk in old_ids.chunks(chunk_size) {
+                        s.spawn(move || {
+                            for id in chunk {
+                                let obj = dir_ref.join(id);
+                                let meta_path = dir_ref.join(format!("{id}.json"));
+                                let _ = fs::remove_file(&obj);
+                                let _ = fs::remove_file(&meta_path);
+                            }
+                        });
+                    }
+                });
             }
+
             rows.push(Row::Line(format!(
                 "  removed {removed} artifact(s) older than {d} day(s)"
             )));
