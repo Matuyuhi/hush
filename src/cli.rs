@@ -44,6 +44,9 @@ pub enum Cmd {
         /// Delete artifacts older than N days (omit to show current usage)
         #[arg(long)]
         days: Option<u64>,
+        /// With --days, preview what would be removed without deleting anything
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Show how much output has been compressed so far
