@@ -67,8 +67,8 @@ Regenerated from the fixtures and refreshed automatically by CI after each merge
                 27 sample commands
 ---------------------------------------------------
   original      204 KB   3,943 lines   ~51.1K tok
-  compressed   44.6 KB     578 lines   ~11.2K tok
-  saved         160 KB       (78.2%)   ~39.9K tok
+  compressed   44.7 KB     579 lines   ~11.2K tok
+  saved         160 KB       (78.1%)   ~39.9K tok
 ---------------------------------------------------
   by command
   ls                        57.2 KB -> 1.8 KB   97%
@@ -83,7 +83,7 @@ Regenerated from the fixtures and refreshed automatically by CI after each merge
   make                       3.6 KB ->  635 B   83%
   pytest                     7.0 KB -> 4.1 KB   41%
   diff                       2.8 KB ->  169 B   94%
-  go test                    2.8 KB ->  254 B   91%
+  go test                    2.8 KB ->  294 B   89%
   docker ps                  6.5 KB -> 4.1 KB   37%
   tree                       3.0 KB ->  675 B   78%
   cargo test                 2.5 KB ->  331 B   87%
