@@ -145,6 +145,7 @@ fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
@@ -176,5 +177,69 @@ mod tests {
         assert!(validate_id("あ").is_err());
         assert!(validate_id("abcあ").is_err());
         assert!(validate_id("😊").is_err());
+    }
+
+    #[test]
+    fn put_creates_file_and_metadata() {
+        let dir = tempdir().unwrap();
+        let store = Store { objects: dir.path().to_path_buf() };
+
+        let original = b"hello world";
+        let command = vec!["echo".to_string(), "hello world".to_string()];
+        let meta = PutMeta {
+            command: &command,
+            cwd: "/tmp",
+            exit_code: 0,
+            filter: "dummy",
+            orig_lines: 1,
+            compact_bytes: 11,
+            compact_lines: 1,
+        };
+
+        let id = store.put(original, meta).unwrap();
+
+        // Original file
+        let content = fs::read(dir.path().join(&id)).unwrap();
+        assert_eq!(content, original);
+
+        // Metadata file
+        let json = fs::read(dir.path().join(format!("{}.json", id))).unwrap();
+        let parsed: Meta = serde_json::from_slice(&json).unwrap();
+        assert_eq!(parsed.id, id);
+        assert_eq!(parsed.filter, "dummy");
+        assert_eq!(parsed.command, command);
+    }
+
+    #[test]
+    fn put_skips_existing() {
+        let dir = tempdir().unwrap();
+        let store = Store { objects: dir.path().to_path_buf() };
+
+        let original = b"duplicate content";
+        let meta = PutMeta {
+            command: &["echo".to_string()],
+            cwd: "/tmp",
+            exit_code: 0,
+            filter: "dummy",
+            orig_lines: 1,
+            compact_bytes: 17,
+            compact_lines: 1,
+        };
+
+        let id1 = store.put(original, meta).unwrap();
+
+        // Try putting again with the same content
+        let meta2 = PutMeta {
+            command: &["echo".to_string()],
+            cwd: "/tmp",
+            exit_code: 0,
+            filter: "dummy",
+            orig_lines: 1,
+            compact_bytes: 17,
+            compact_lines: 1,
+        };
+        let id2 = store.put(original, meta2).unwrap();
+
+        assert_eq!(id1, id2);
     }
 }
