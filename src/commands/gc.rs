@@ -74,7 +74,9 @@ pub fn run(days: Option<u64>) -> Result<i32> {
         Some(d) => {
             let removed = old_ids.len() as u64;
             if !old_ids.is_empty() {
-                let num_threads = thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+                let num_threads = thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(4);
                 let chunk_size = old_ids.len().div_ceil(num_threads);
 
                 let dir_ref = dir.as_path();
