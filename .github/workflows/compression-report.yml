@@ -43,14 +43,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # PR（ラベル時）: レポートを生成して PR にコメント。
+      # PR（ラベル時）: レポートを生成して PR にコメント。main 比 Δ 付き。
       # fork からの PR は GITHUB_TOKEN が read-only でコメントできない点に注意。
+      #
+      # baseline = 「main の filters」を「この PR の fixtures/CASES」で計測した圧縮率。
+      # main を worktree に出し、PR 側の tests/（fixtures + 計測ハーネス）で上書きしてから
+      # 同じ writes_report を走らせ、main 側の target/compression-data.tsv を吸い上げる。
+      # baseline を取れなければ Δ 無しの従来コメントにフォールバック（装飾 job なので fail-soft）。
       - name: Comment on PR (labeled)
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo test --test compression writes_report -- --nocapture
+          # baseline 取得は丸ごと fail-soft（どこで失敗しても baseline 空のまま続行）。
+          baseline=""
+          {
+            git fetch --no-tags --depth=1 origin main \
+              && git worktree add /tmp/hush-main FETCH_HEAD \
+              && rm -rf /tmp/hush-main/tests \
+              && cp -R tests /tmp/hush-main/tests \
+              && ( cd /tmp/hush-main && cargo test --test compression writes_report ) \
+              && baseline=/tmp/hush-main/target/compression-data.tsv
+          } || echo "baseline unavailable; posting report without vs-main delta"
+          HUSH_BASELINE="$baseline" cargo test --test compression writes_report -- --nocapture
           gh pr comment "${{ github.event.pull_request.number }}" --body-file target/compression-report.md
 
       # main push: README の表を再生成し、job summary に掲示。差分があれば更新 PR を開く。

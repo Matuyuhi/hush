@@ -11,6 +11,7 @@
 //! 圧縮率は `stats` と同じく「削減バイト / 原文バイト」。原文 = 生の stdout+stderr、
 //! 圧縮後 = フィルタ本文（expand フッタは含めない）。
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -282,7 +283,7 @@ fn approx_tokens(bytes: u64) -> u64 {
 
 /// `hush stats` と同じ枠付きブロックでレポートを描画する（README/job summary 共通）。
 /// 罫線・桁揃えは `ui` を再利用し、見た目を `hush stats` に合わせる。
-fn report_block(rows: &[Measured]) -> String {
+fn report_block(rows: &[Measured], baseline: Option<&HashMap<String, (u64, u64)>>) -> String {
     let orig_b: u64 = rows.iter().map(|m| m.orig_bytes as u64).sum();
     let comp_b: u64 = rows.iter().map(|m| m.compact_bytes as u64).sum();
     let orig_l: u64 = rows.iter().map(|m| m.orig_lines as u64).sum();
@@ -292,6 +293,27 @@ fn report_block(rows: &[Measured]) -> String {
         100.0 * saved_b as f64 / orig_b as f64
     } else {
         0.0
+    };
+
+    // ベースライン（main の filters を同じ fixtures で計測した値）の合計圧縮率。Δ 表示用。
+    // 個別 cmd が baseline に無ければ現値で埋めて合計の意味を保つ（通常は全 cmd 揃う）。
+    let base_ratio = baseline.map(|b| {
+        let (bo, bc) = rows.iter().fold((0u64, 0u64), |(o, c), m| {
+            let (mo, mc) = b
+                .get(m.cmd)
+                .copied()
+                .unwrap_or((m.orig_bytes as u64, m.compact_bytes as u64));
+            (o + mo, c + mc)
+        });
+        if bo > 0 {
+            100.0 * bo.saturating_sub(bc) as f64 / bo as f64
+        } else {
+            0.0
+        }
+    });
+    let saved_mid = match base_ratio {
+        Some(br) => format!("({ratio:.1}%, main {br:.1}% {:+.1}pt)", ratio - br),
+        None => format!("({ratio:.1}%)"),
     };
 
     // --- totals block: (label, bytes, middle, tokens) ---
@@ -311,7 +333,7 @@ fn report_block(rows: &[Measured]) -> String {
         (
             "saved",
             human_bytes(saved_b),
-            format!("({ratio:.1}%)"),
+            saved_mid,
             human_count(approx_tokens(saved_b)),
         ),
     ];
@@ -326,29 +348,105 @@ fn report_block(rows: &[Measured]) -> String {
         })
         .collect();
 
-    // --- by-command block: (name, original, compressed, percent) ---
+    // --- by-command block: (name, original, compressed, percent[, vs main]) ---
     // 削減バイトの大きい順（hush stats の by filter と同じ並び）。
     let mut sorted: Vec<&Measured> = rows.iter().collect();
     sorted.sort_by_key(|m| std::cmp::Reverse(m.orig_bytes.saturating_sub(m.compact_bytes)));
-    let crows: Vec<(String, String, String, String)> = sorted
+    // 各 cmd の main 比。baseline 無し(None)なら全件を Δ 無しで出す。
+    // baseline あり(PR コメント)なら「main と差がある cmd だけ」出す（Same は隠す）。
+    enum Vs {
+        Diff { bp: String, delta: String }, // main と差あり -> 表示
+        Same,                               // main と一致   -> 隠す
+        New,                                // main に対応なし -> 表示
+    }
+    struct CRow {
+        name: String,
+        ob: String,
+        cb: String,
+        p: String,
+        vs: Option<Vs>,
+    }
+    let crows: Vec<CRow> = sorted
         .iter()
         .map(|m| {
-            (
-                m.cmd.to_string(),
-                human_bytes(m.orig_bytes as u64),
-                human_bytes(m.compact_bytes as u64),
-                format!("{:.0}%", m.ratio * 100.0),
-            )
+            let cp = m.ratio * 100.0;
+            let vs = baseline.map(|b| match b.get(m.cmd) {
+                Some(&(bo, bc)) => {
+                    let bp = if bo > 0 {
+                        100.0 * bo.saturating_sub(bc) as f64 / bo as f64
+                    } else {
+                        0.0
+                    };
+                    let d = (cp - bp).round() as i64;
+                    if d == 0 {
+                        Vs::Same
+                    } else {
+                        let delta = if d > 0 {
+                            format!("+{d}pt")
+                        } else {
+                            format!("{d}pt")
+                        };
+                        Vs::Diff {
+                            bp: format!("{bp:.0}"),
+                            delta,
+                        }
+                    }
+                }
+                None => Vs::New,
+            });
+            CRow {
+                name: m.cmd.to_string(),
+                ob: human_bytes(m.orig_bytes as u64),
+                cb: human_bytes(m.compact_bytes as u64),
+                p: format!("{cp:.0}%"),
+                vs,
+            }
         })
         .collect();
-    let cw_name = crows.iter().map(|r| r.0.len()).max().unwrap_or(0);
-    let cw_ob = crows.iter().map(|r| r.1.len()).max().unwrap_or(0);
-    let cw_cb = crows.iter().map(|r| r.2.len()).max().unwrap_or(0);
-    let cw_pct = crows.iter().map(|r| r.3.len()).max().unwrap_or(0);
-    let cmd_lines: Vec<String> = crows
+    // PR（baseline あり）では差分のある行だけ。baseline 無しは全件。
+    let shown: Vec<&CRow> = crows
         .iter()
-        .map(|(n, ob, cb, p)| {
-            format!("  {n:<cw_name$}   {ob:>cw_ob$} -> {cb:>cw_cb$}   {p:>cw_pct$}")
+        .filter(|r| !matches!(r.vs, Some(Vs::Same)))
+        .collect();
+    let cw_name = shown.iter().map(|r| r.name.len()).max().unwrap_or(0);
+    let cw_ob = shown.iter().map(|r| r.ob.len()).max().unwrap_or(0);
+    let cw_cb = shown.iter().map(|r| r.cb.len()).max().unwrap_or(0);
+    let cw_pct = shown.iter().map(|r| r.p.len()).max().unwrap_or(0);
+    // vs-main 注釈の桁揃え（baseline% と Δ の最大幅）。
+    let cw_bp = shown
+        .iter()
+        .filter_map(|r| match &r.vs {
+            Some(Vs::Diff { bp, .. }) => Some(bp.len()),
+            _ => None,
+        })
+        .max()
+        .unwrap_or(0);
+    let cw_d = shown
+        .iter()
+        .filter_map(|r| match &r.vs {
+            Some(Vs::Diff { delta, .. }) => Some(delta.len()),
+            _ => None,
+        })
+        .max()
+        .unwrap_or(0);
+    let cmd_lines: Vec<String> = shown
+        .iter()
+        .map(|r| {
+            let base = format!(
+                "  {n:<cw_name$}   {ob:>cw_ob$} -> {cb:>cw_cb$}   {p:>cw_pct$}",
+                n = r.name,
+                ob = r.ob,
+                cb = r.cb,
+                p = r.p
+            );
+            match &r.vs {
+                Some(Vs::Diff { bp, delta }) => {
+                    format!("{base}   (main {bp:>cw_bp$}%, {delta:>cw_d$})")
+                }
+                Some(Vs::New) => format!("{base}   (new vs main)"),
+                Some(Vs::Same) => unreachable!("Same は shown から除外済み"),
+                None => base,
+            }
         })
         .collect();
 
@@ -360,8 +458,18 @@ fn report_block(rows: &[Measured]) -> String {
     ];
     block.extend(total_lines.into_iter().map(Row::Line));
     block.push(Row::Rule);
-    block.push(Row::Line("  by command".to_string()));
-    block.extend(cmd_lines.into_iter().map(Row::Line));
+    let by_header = if baseline.is_some() {
+        "  by command (vs main)"
+    } else {
+        "  by command"
+    };
+    block.push(Row::Line(by_header.to_string()));
+    if cmd_lines.is_empty() {
+        // baseline ありで全 cmd が main と一致した時だけここに来る。
+        block.push(Row::Line("  no per-command change vs main".to_string()));
+    } else {
+        block.extend(cmd_lines.into_iter().map(Row::Line));
+    }
     block.push(Row::Rule);
     block.push(Row::Center(
         "~tok = bytes/4, from fixed sample inputs".to_string(),
@@ -370,12 +478,52 @@ fn report_block(rows: &[Measured]) -> String {
     ui::render_to_string(&block)
 }
 
-fn build_report(rows: &[Measured]) -> String {
+fn build_report(rows: &[Measured], baseline: Option<&HashMap<String, (u64, u64)>>) -> String {
     // README と同じフレーム表示を code fence で包んで md 化（PR コメント/job summary 用）。
     format!(
         "## hush compression report\n\n```\n{}\n```\n",
-        report_block(rows)
+        report_block(rows, baseline)
     )
+}
+
+/// 計測値を TSV（`cmd<TAB>orig<TAB>compact<TAB>orig_lines<TAB>shown_lines`）で書き出す。
+/// CI は main 側（main の filters x この PR の fixtures）でも同じテストを走らせ、
+/// この TSV を `HUSH_BASELINE` 経由で PR 側に渡して main 比 Δ を描く。
+fn write_data_tsv(rows: &[Measured]) {
+    let mut s = String::from("# cmd\torig_bytes\tcompact_bytes\torig_lines\tshown_lines\n");
+    for m in rows {
+        s.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{}\n",
+            m.cmd, m.orig_bytes, m.compact_bytes, m.orig_lines, m.shown_lines
+        ));
+    }
+    let out = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/compression-data.tsv");
+    if let Some(parent) = out.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::write(&out, s);
+}
+
+/// `HUSH_BASELINE` が指すベースライン TSV を cmd -> (orig, compact) で読む。
+/// 未設定・空・読めない・壊れている場合は None（Δ 無しの従来表示にフォールバック）。
+fn read_baseline() -> Option<HashMap<String, (u64, u64)>> {
+    let path = std::env::var_os("HUSH_BASELINE")?;
+    if path.is_empty() {
+        return None;
+    }
+    let text = fs::read_to_string(&path).ok()?;
+    let mut map = HashMap::new();
+    for line in text.lines() {
+        if line.starts_with('#') || line.trim().is_empty() {
+            continue;
+        }
+        let mut it = line.split('\t');
+        let cmd = it.next()?.to_string();
+        let orig: u64 = it.next()?.trim().parse().ok()?;
+        let comp: u64 = it.next()?.trim().parse().ok()?;
+        map.insert(cmd, (orig, comp));
+    }
+    if map.is_empty() { None } else { Some(map) }
 }
 
 #[test]
@@ -403,7 +551,11 @@ fn meets_minimum_compression() {
 #[test]
 fn writes_report() {
     let rows: Vec<Measured> = CASES.iter().map(measure).collect();
-    let md = build_report(&rows);
+    // 計測値を TSV でも残す（CI が main 側の同テスト出力をベースラインに使う）。
+    write_data_tsv(&rows);
+    // HUSH_BASELINE があれば main 比 Δ 付き、無ければ従来どおりの絶対表示。
+    let baseline = read_baseline();
+    let md = build_report(&rows, baseline.as_ref());
 
     let out = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/compression-report.md");
     if let Some(parent) = out.parent() {
@@ -430,7 +582,8 @@ fn sync_readme() {
     }
     let rows: Vec<Measured> = CASES.iter().map(measure).collect();
     // フレーム表示を code fence で包む（markdown 内で桁揃えを保つため）。
-    let block = format!("```\n{}\n```", report_block(&rows));
+    // README は正準の絶対表示なので PR 相対の Δ は出さない（baseline は常に None）。
+    let block = format!("```\n{}\n```", report_block(&rows, None));
 
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("README.md");
     let readme = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read README: {e}"));
