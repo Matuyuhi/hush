@@ -23,6 +23,7 @@ pub mod git_status;
 pub mod go_build;
 pub mod grep;
 pub mod json;
+pub mod kubectl_logs;
 pub mod ls;
 pub mod make;
 pub mod node_check;
@@ -97,6 +98,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("du" | "tree", _) => du_tree::run(input),
         ("docker", "ps" | "images") => tabular::run(input),
         ("kubectl", "get" | "top") => tabular::run(input),
+        ("kubectl", "logs") => kubectl_logs::run(input),
         ("pip" | "pip3", "list") => tabular::run(input),
         ("ps" | "df" | "lsblk" | "free" | "ss", _) => tabular::run(input),
         ("grep", _) => grep::run(input),

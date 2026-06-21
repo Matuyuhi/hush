@@ -114,6 +114,13 @@ const CASES: &[Case] = &[
         min_ratio: 0.55,
     },
     Case {
+        cmd: "kubectl logs",
+        argv: &["kubectl", "logs", "deploy/api"],
+        stdout: Some("kubectl-logs/logs.stdout"),
+        stderr: None,
+        min_ratio: 0.55,
+    },
+    Case {
         cmd: "json (cargo messages)",
         argv: &["cargo", "build", "--message-format=json"],
         stdout: Some("json/cargo-messages.ndjson"),
