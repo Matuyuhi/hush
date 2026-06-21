@@ -13,7 +13,22 @@ const MAX_LINES: usize = 40;
 const HEAD: usize = 26;
 const TAIL: usize = 10;
 
+/// 汎用フォールバック。まず content-sniff で JSON 圧縮を試し、通常の行ベース
+/// 圧縮より小さくなるならそちらを採る。JSON でなければ従来どおり行ベースで畳む。
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
+    let plain = run_plain(input)?;
+    // 内容が JSON とみなせて、行ベース圧縮より短くなる場合だけ JSON フィルタを採用。
+    if let Some(j) = super::json::compact(input)
+        && j.compact.len() < plain.compact.len()
+    {
+        return Ok(j);
+    }
+    Ok(plain)
+}
+
+/// 行ベースの汎用圧縮本体（JSON sniff を行わない）。JSON フィルタが解釈に失敗した
+/// ときのフォールバック先でもあるため、再び sniff しないよう分離してある。
+pub fn run_plain(input: &FilterInput) -> Result<FilterOutput> {
     // 表示用テキスト（stdout + 必要なら stderr）。色コードは除去する。
     let stdout_text = String::from_utf8_lossy(&input.stdout);
     let stderr_text = String::from_utf8_lossy(&input.stderr);

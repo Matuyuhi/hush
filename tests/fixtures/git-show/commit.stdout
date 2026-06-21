@@ -1,0 +1,168 @@
+commit 9f3c1a7b2e84d05612af0c9d7e3b4a18c2d6e0f1 (HEAD -> main, origin/main)
+Author: Pat Developer <pat@example.com>
+Date:   Tue Mar 12 09:41:23 2024 +0000
+
+    feat(auth): add token refresh and session expiry handling
+
+    Sessions previously stayed valid until the process restarted, which
+    let stale tokens linger far past their intended lifetime. This change
+    introduces an explicit refresh path and a background sweep that drops
+    expired sessions.
+
+    - refresh tokens within the grace window before expiry
+    - drop sessions once past hard expiry
+    - cover the new paths with unit tests
+
+diff --git a/src/auth/session.rs b/src/auth/session.rs
+index 1a2b3c4..5d6e7f8 100644
+--- a/src/auth/session.rs
++++ b/src/auth/session.rs
+@@ -1,12 +1,18 @@
+ use std::collections::HashMap;
++use std::time::{Duration, Instant};
+
+ pub struct Session {
+     pub id: String,
+     pub token: String,
++    pub issued_at: Instant,
++    pub expires_at: Instant,
+ }
+
+ pub struct SessionStore {
+     sessions: HashMap<String, Session>,
++    grace: Duration,
+ }
+
+ impl SessionStore {
+@@ -20,15 +26,38 @@ impl SessionStore {
+     pub fn new() -> Self {
+         Self {
+             sessions: HashMap::new(),
++            grace: Duration::from_secs(60),
+         }
+     }
+
+-    pub fn get(&self, id: &str) -> Option<&Session> {
+-        self.sessions.get(id)
++    pub fn get(&mut self, id: &str) -> Option<&Session> {
++        let now = Instant::now();
++        if let Some(s) = self.sessions.get(id) {
++            if s.expires_at <= now {
++                self.sessions.remove(id);
++                return None;
++            }
++        }
++        self.sessions.get(id)
+     }
+
+-    pub fn insert(&mut self, s: Session) {
+-        self.sessions.insert(s.id.clone(), s);
++    pub fn insert(&mut self, s: Session) {
++        self.sessions.insert(s.id.clone(), s);
++    }
++
++    pub fn refresh(&mut self, id: &str) -> bool {
++        let now = Instant::now();
++        if let Some(s) = self.sessions.get_mut(id) {
++            if s.expires_at.saturating_duration_since(now) <= self.grace {
++                s.issued_at = now;
++                s.expires_at = now + Duration::from_secs(3600);
++                return true;
++            }
++        }
++        false
++    }
++
++    pub fn sweep_expired(&mut self) {
++        let now = Instant::now();
++        self.sessions.retain(|_, s| s.expires_at > now);
+     }
+ }
+diff --git a/src/auth/mod.rs b/src/auth/mod.rs
+index aaaaaaa..bbbbbbb 100644
+--- a/src/auth/mod.rs
++++ b/src/auth/mod.rs
+@@ -1,5 +1,6 @@
+ pub mod session;
+ pub mod token;
++pub mod refresh;
+
+ pub use session::{Session, SessionStore};
+diff --git a/src/auth/refresh.rs b/src/auth/refresh.rs
+new file mode 100644
+index 0000000..c0ffee0
+--- /dev/null
++++ b/src/auth/refresh.rs
+@@ -0,0 +1,24 @@
++use crate::auth::SessionStore;
++
++pub struct Refresher {
++    interval_secs: u64,
++}
++
++impl Refresher {
++    pub fn new(interval_secs: u64) -> Self {
++        Self { interval_secs }
++    }
++
++    pub fn tick(&self, store: &mut SessionStore) {
++        store.sweep_expired();
++    }
++
++    pub fn interval(&self) -> u64 {
++        self.interval_secs
++    }
++}
++
++impl Default for Refresher {
++    fn default() -> Self {
++        Self::new(30)
++    }
++}
+diff --git a/tests/session_test.rs b/tests/session_test.rs
+index 1111111..2222222 100644
+--- a/tests/session_test.rs
++++ b/tests/session_test.rs
+@@ -10,6 +10,28 @@ fn insert_and_get() {
+     store.insert(make_session("a"));
+     assert!(store.get("a").is_some());
+ }
++
++#[test]
++fn expired_session_is_dropped() {
++    let mut store = SessionStore::new();
++    store.insert(make_expired_session("b"));
++    assert!(store.get("b").is_none());
++}
++
++#[test]
++fn refresh_extends_expiry() {
++    let mut store = SessionStore::new();
++    store.insert(make_near_expiry_session("c"));
++    assert!(store.refresh("c"));
++    assert!(store.get("c").is_some());
++}
++
++#[test]
++fn sweep_removes_only_expired() {
++    let mut store = SessionStore::new();
++    store.insert(make_session("live"));
++    store.insert(make_expired_session("dead"));
++    store.sweep_expired();
++    assert!(store.get("live").is_some());
++    assert!(store.get("dead").is_none());
++}
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3333333..4444444 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,9 @@
+ # Changelog
+
++## Unreleased
++
++- Add token refresh and session expiry handling.
++
+ ## 0.4.0
+
+ - Initial auth module.

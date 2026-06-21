@@ -41,9 +41,18 @@ Cargo.lock  (+480 -0)
 - **Fold, don't drop** — compaction is reversible. Every elided output is content-
   addressed and stored under `~/.local/share/hush/`; `hush expand <id>` returns the
   exact bytes, so the model never has to re-run a command for missing context.
-- **Per-command filters** — `git status/diff/log`, `grep`, `find`, `ls`, `cat`,
-  `cargo test`, and `read` (tree-sitter signatures) each get a tailored compaction;
-  anything else falls back to a generic one.
+- **Per-command filters** — a tailored compaction for each family: version control
+  (`git status/diff/log/show`, `diff`), builds and linters (`cargo build/test`,
+  `go build/vet/test`, `tsc`, `eslint`, `make`), test runners (`jest`/`vitest`/`mocha`/
+  `pytest`/…), package installs (`npm`/`pnpm`/`yarn`/`bun`/`pip install`), tables
+  (`docker ps`, `kubectl get`, `ps`, `df`, `pip list`, `lsblk`, `free`, …), the
+  filesystem (`ls`, `find`, `du`, `tree`), `grep`, Python tracebacks, and `read`
+  (tree-sitter signatures). Anything else falls back to a generic compactor.
+- **Content-aware JSON** — any command that emits JSON or NDJSON is detected by an
+  output flag (`-o json`, `--format json`, `--message-format=json`, `--json`, …) or by
+  sniffing the bytes, then large arrays are summarized, long strings clipped, and
+  whitespace folded — so `kubectl -o json`, `gh … --json`, `cargo --message-format=json`,
+  `cat foo.json`, and friends all compact without per-command wiring.
 
 ## Compression
 
@@ -55,23 +64,37 @@ Regenerated from the fixtures and refreshed automatically by CI after each merge
 ```
               hush compression report
 ---------------------------------------------------
-                13 sample commands
+                27 sample commands
 ---------------------------------------------------
-  original      112 KB   2,088 lines   ~28.1K tok
-  compressed   16.6 KB     286 lines   ~ 4.1K tok
-  saved        96.0 KB       (85.3%)   ~24.0K tok
+  original      204 KB   3,943 lines   ~51.1K tok
+  compressed   44.6 KB     578 lines   ~11.2K tok
+  saved         160 KB       (78.2%)   ~39.9K tok
 ---------------------------------------------------
   by command
   ls                        57.2 KB -> 1.8 KB   97%
+  json (cargo messages)     27.8 KB -> 8.0 KB   71%
+  json (kubectl -o json)    24.2 KB -> 6.9 KB   72%
   git log                   12.8 KB -> 1.5 KB   88%
   grep                       9.8 KB ->  868 B   91%
   build log (passthrough)    9.7 KB -> 2.2 KB   78%
+  du -a                      7.0 KB ->  760 B   89%
+  git show                   4.4 KB ->  735 B   83%
+  npm install                4.6 KB -> 1.0 KB   77%
+  make                       3.6 KB ->  635 B   83%
   pytest                     7.0 KB -> 4.1 KB   41%
-  go test                    2.8 KB ->  294 B   89%
+  diff                       2.8 KB ->  169 B   94%
+  go test                    2.8 KB ->  254 B   91%
   docker ps                  6.5 KB -> 4.1 KB   37%
+  tree                       3.0 KB ->  675 B   78%
   cargo test                 2.5 KB ->  331 B   87%
   git diff                   2.0 KB ->   94 B   95%
+  vitest                     2.3 KB ->  573 B   75%
+  python (traceback)         2.7 KB -> 1.4 KB   50%
+  pip list                   1.5 KB ->  735 B   52%
+  eslint                     2.4 KB -> 1.8 KB   25%
   find                        779 B ->  258 B   67%
+  tsc                        3.2 KB -> 2.9 KB   10%
+  go build                   2.2 KB -> 1.9 KB   14%
   git status                  883 B ->  583 B   34%
   cargo build                 390 B ->  183 B   53%
   cargo build (cargo err)     225 B ->  200 B   11%
