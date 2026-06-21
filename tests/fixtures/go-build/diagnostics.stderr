@@ -1,0 +1,30 @@
+go: downloading example.com/x v1.2.3
+go: downloading example.com/y v0.4.0
+go: downloading example.com/logging v2.1.0
+go: downloading github.com/sample/widgets v1.8.2
+go: found example.com/x in example.com/x v1.2.3
+go: found example.com/y in example.com/y v0.4.0
+go: extracting example.com/logging v2.1.0
+# example.com/project/internal/store
+/home/user/project/internal/store/store.go:42:13: undefined: fmt.Printlnx
+/home/user/project/internal/store/store.go:58:9: cannot use id (variable of type string) as int value in argument to lookup
+/home/user/project/internal/store/store.go:71:2: declared and not used: tmp
+/home/user/project/internal/store/store.go:89:20: too many arguments in call to insert
+/home/user/project/internal/store/index.go:12:6: missing return at end of function
+/home/user/project/internal/store/index.go:33:14: undefined: bytesToString
+/home/user/project/internal/store/index.go:47:5: assignment mismatch: 2 variables but indexEntry returns 1 value
+# example.com/project/internal/config
+/home/user/project/internal/config/loader.go:18:2: imported and not used: "os"
+/home/user/project/internal/config/loader.go:30:11: cannot convert cfg (variable of type *Config) to type string
+/home/user/project/internal/config/loader.go:55:9: undefined: defaultTimeout
+/home/user/project/internal/config/parse.go:14:17: invalid operation: key + value (mismatched types string and int)
+/home/user/project/internal/config/parse.go:40:6: missing return at end of function
+# example.com/project/cmd/server
+/home/user/project/cmd/server/main.go:7: syntax error: unexpected name http, expecting semicolon or newline
+/home/user/project/cmd/server/main.go:21:13: undefined: store.New
+/home/user/project/cmd/server/main.go:38:2: undefined: log.Fataln
+/home/user/project/cmd/server/router.go:9:6: handleRoot redeclared in this block
+/home/user/project/cmd/server/router.go:9:6: other declaration of handleRoot
+/home/user/project/cmd/server/router.go:25:18: not enough arguments in call to mux.Handle
+/home/user/project/cmd/server/router.go:44:9: cannot use nil as http.Handler value in argument
+/home/user/project/cmd/server/router.go:60:13: undefined: middleware.Recover

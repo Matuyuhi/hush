@@ -24,6 +24,12 @@ fn is_passing_noise(line: &str) -> bool {
         || (t.starts_with("test ") && t.ends_with(" ok"))
         // jest: 通過ファイル "PASS src/x.test.js"
         || t.starts_with("PASS ")
+        // vitest / mocha: 合格テストのチェックマーク行（失敗マーク ×/✗/✖/❯ は残す）。
+        || t.starts_with('\u{2713}') // ✓
+        || t.starts_with('\u{221a}') // √ (Windows)
+        // pytest -v: "tests/test_x.py::test_y PASSED"。node id (`::`) を含む行に限定し、
+        // " PASSED" で終わる無関係な文を誤って落とさないようにする。
+        || (t.contains("::") && t.ends_with(" PASSED"))
 }
 
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
@@ -100,6 +106,32 @@ ok\tpkg/foo\t0.045s
         assert!(out.compact.contains("expected 1, got 2"));
         assert!(out.compact.contains("FAIL\tpkg/bar"));
         assert!(out.compact.contains("ok\tpkg/foo"));
+    }
+
+    #[test]
+    fn vitest_drops_passing_checks_keeps_failures() {
+        let stdout = "\
+ \u{2713} src/a.test.ts (3 tests) 5ms
+ \u{2713} src/b.test.ts (4 tests) 7ms
+ \u{276f} src/c.test.ts (2 tests | 1 failed) 9ms
+   \u{00d7} c > does a thing
+     \u{2192} expected 1 to be 2
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 8 passed (9)
+";
+        let input = FilterInput {
+            argv: vec!["vitest".into()],
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: Vec::new(),
+        };
+        let out = run(&input).unwrap();
+        // 合格チェック行は消える。
+        assert!(!out.compact.contains("a.test.ts"));
+        assert!(!out.compact.contains("b.test.ts"));
+        // 失敗・原因・サマリは残る。
+        assert!(out.compact.contains("c.test.ts"));
+        assert!(out.compact.contains("expected 1 to be 2"));
+        assert!(out.compact.contains("Tests  1 failed | 8 passed (9)"));
     }
 
     #[test]

@@ -1,0 +1,98 @@
+npm http fetch GET 200 https://registry.example.com/react 142ms
+npm http fetch GET 200 https://registry.example.com/react-dom 98ms
+npm http fetch GET 200 https://registry.example.com/lodash 211ms
+npm http fetch GET 200 https://registry.example.com/express 87ms
+npm http fetch GET 200 https://registry.example.com/chalk 64ms
+npm http fetch GET 200 https://registry.example.com/commander 73ms
+npm http fetch GET 200 https://registry.example.com/debug 55ms
+npm http fetch GET 200 https://registry.example.com/glob 119ms
+npm http fetch GET 200 https://registry.example.com/minimatch 42ms
+npm http fetch GET 200 https://registry.example.com/semver 91ms
+npm timing idealTree:userRequests Completed in 4ms
+npm timing idealTree:#root Completed in 12ms
+npm timing idealTree:node_modules/react Completed in 3ms
+npm timing idealTree:node_modules/react-dom Completed in 2ms
+npm timing idealTree:node_modules/lodash Completed in 1ms
+npm timing idealTree:buildDeps Completed in 188ms
+npm timing reify:loadTrees Completed in 201ms
+npm timing reify:diffTrees Completed in 9ms
+npm timing reify:retireShallow Completed in 0ms
+npm timing reify:createSparse Completed in 14ms
+npm timing reify:loadBundles Completed in 0ms
+npm timing reify:unpackTree Completed in 22ms
+npm timing reifyNode:node_modules/react Completed in 7ms
+npm timing reifyNode:node_modules/react-dom Completed in 6ms
+npm timing reifyNode:node_modules/lodash Completed in 5ms
+npm timing reifyNode:node_modules/express Completed in 4ms
+npm timing reifyNode:node_modules/chalk Completed in 3ms
+npm timing reifyNode:node_modules/commander Completed in 3ms
+npm timing reifyNode:node_modules/debug Completed in 2ms
+npm timing reifyNode:node_modules/glob Completed in 4ms
+npm timing reifyNode:node_modules/minimatch Completed in 2ms
+npm timing reifyNode:node_modules/semver Completed in 3ms
+npm http fetch GET 200 https://registry.example.com/body-parser 71ms
+npm http fetch GET 200 https://registry.example.com/cookie 38ms
+npm http fetch GET 200 https://registry.example.com/qs 44ms
+npm http fetch GET 200 https://registry.example.com/accepts 51ms
+npm http fetch GET 200 https://registry.example.com/type-is 47ms
+npm http fetch GET 200 https://registry.example.com/depd 33ms
+npm http fetch GET 200 https://registry.example.com/finalhandler 62ms
+npm http fetch GET 200 https://registry.example.com/merge-descriptors 29ms
+npm http fetch GET 200 https://registry.example.com/methods 31ms
+npm http fetch GET 200 https://registry.example.com/parseurl 35ms
+added react@18.2.0
+added react-dom@18.2.0
+added lodash@4.17.21
+added express@4.18.2
+added chalk@5.3.0
+added commander@11.1.0
+added debug@4.3.4
+added glob@10.3.10
+added minimatch@9.0.3
+added semver@7.5.4
+added body-parser@1.20.2
+added cookie@0.5.0
+added qs@6.11.0
+added accepts@1.3.8
+added type-is@1.6.18
+added depd@2.0.0
+added finalhandler@1.2.0
+added merge-descriptors@1.0.1
+added methods@1.1.2
+added parseurl@1.3.3
+added send@0.18.0
+added serve-static@1.15.0
+added range-parser@1.2.1
+added etag@1.8.1
+added fresh@0.5.2
+added vary@1.1.2
+added content-type@1.0.5
+added content-disposition@0.5.4
+added bytes@3.1.2
+added raw-body@2.5.2
+npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it.
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm timing reify:rollbackRetireShallow Completed in 0ms
+npm timing reify:save Completed in 31ms
+npm timing reify:audit Completed in 412ms
+npm timing command:install Completed in 4821ms
+npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+npm WARN deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'some-pkg@2.0.0',
+npm warn EBADENGINE   required: { node: '>=20' },
+npm warn EBADENGINE   current: { node: 'v18.17.0', npm: '9.6.7' }
+npm warn EBADENGINE }
+npm WARN peer dependency react@">=17" from react-dom@18.2.0
+npm timing metavuln:packages Completed in 2ms
+npm timing metavuln:fetch Completed in 1ms
+
+added 30 packages, and audited 31 packages in 5s
+
+4 packages are looking for funding
+  run `npm fund` for details
+
+found 3 vulnerabilities (1 moderate, 2 high)
+  run `npm audit fix` to address all issues, or `npm audit` for details.

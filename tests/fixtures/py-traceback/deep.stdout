@@ -1,0 +1,11 @@
+[2024-01-15 09:30:00] starting batch job runner
+[2024-01-15 09:30:00] loading environment from /home/user/app/.env
+[2024-01-15 09:30:01] connecting to local cache backend
+[2024-01-15 09:30:01] cache backend ready
+[2024-01-15 09:30:02] discovered 3 pipeline stages
+[2024-01-15 09:30:02] stage 1/3: ingest
+[2024-01-15 09:30:03] stage 1/3: ingest complete (412 records)
+[2024-01-15 09:30:03] stage 2/3: transform
+[2024-01-15 09:30:04] stage 2/3: transform complete (412 records)
+[2024-01-15 09:30:04] stage 3/3: publish
+[2024-01-15 09:30:05] resolving publish target configuration

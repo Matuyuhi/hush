@@ -1,0 +1,56 @@
+make[1]: Entering directory '/home/user/project/build'
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/main.o src/main.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/util.o src/util.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/config.o src/config.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/parser.o src/parser.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/lexer.o src/lexer.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/token.o src/token.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/ast.o src/ast.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/eval.o src/eval.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/env.o src/env.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/scope.o src/scope.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/value.o src/value.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/error.o src/error.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/io.o src/io.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/buffer.o src/buffer.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/string.o src/string.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/vector.o src/vector.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/hashmap.o src/hashmap.c
+src/hashmap.c: In function 'hashmap_init':
+src/hashmap.c:42:9: warning: unused variable 'tmp' [-Wunused-variable]
+   42 |     int tmp = 0;
+      |         ^~~
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/list.o src/list.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/queue.o src/queue.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/stack.o src/stack.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/tree.o src/tree.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/graph.o src/graph.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/sort.o src/sort.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/search.o src/search.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/math.o src/math.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/random.o src/random.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/time.o src/time.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/date.o src/date.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/file.o src/file.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/path.o src/path.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/net.o src/net.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/socket.o src/socket.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/http.o src/http.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/json.o src/json.c
+src/json.c: In function 'json_init':
+src/json.c:42:9: warning: unused variable 'tmp' [-Wunused-variable]
+   42 |     int tmp = 0;
+      |         ^~~
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/yaml.o src/yaml.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/xml.o src/xml.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/csv.o src/csv.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/base64.o src/base64.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/sha256.o src/sha256.c
+gcc -std=c11 -O2 -Wall -Wextra -I include -c -o build/hmac.o src/hmac.c
+src/parser.c: In function 'parse_expr':
+src/parser.c:108:15: error: 'TOKEN_INVALID' undeclared (first use in this function)
+  108 |     if (t == TOKEN_INVALID) {
+      |               ^~~~~~~~~~~~~
+make[1]: *** [Makefile:54: build/parser.o] Error 1
+make[1]: Leaving directory '/home/user/project/build'
+make: *** [Makefile:12: all] Error 2

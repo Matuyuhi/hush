@@ -1,0 +1,42 @@
+
+/home/user/proj/src/components/Button.tsx
+   8:7   error    'props' is defined but never used                  @typescript-eslint/no-unused-vars
+  14:3   warning  Missing return type on function                    @typescript-eslint/explicit-function-return-type
+  22:11  error    Unexpected console statement                       no-console
+  37:5   error    'React' must be in scope when using JSX            react/react-in-jsx-scope
+  45:9   warning  Prop type "any" is forbidden                       react/forbid-prop-types
+
+/home/user/proj/src/components/Card.tsx
+  12:1   error    Expected indentation of 2 spaces but found 4       indent
+  19:80  warning  This line has a length of 92. Maximum allowed is 80  max-len
+  28:14  error    Strings must use singlequote                       quotes
+
+/home/user/proj/src/components/Modal.tsx
+   3:10  error    'useEffect' is defined but never used               @typescript-eslint/no-unused-vars
+  17:7   error    'event' is defined but never used                   @typescript-eslint/no-unused-vars
+  33:21  warning  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+/home/user/proj/src/hooks/useAuth.ts
+   9:5   error    Expected '===' and instead saw '=='                eqeqeq
+  24:13  error    'token' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  41:1   warning  Async function 'login' has no 'await' expression   require-await
+
+/home/user/proj/src/hooks/useFetch.ts
+
+/home/user/proj/src/store/reducer.ts
+   6:7   error    Unexpected lexical declaration in case block        no-case-declarations
+  18:24  error    Assignment to property of function parameter 'state'  no-param-reassign
+  29:3   warning  Arrow function expected no return value             consistent-return
+
+/home/user/proj/src/utils/format.ts
+   4:9   error    Unexpected var, use let or const instead            no-var
+  11:30  warning  Unexpected use of '~'                               no-bitwise
+
+/home/user/proj/src/utils/index.ts
+
+/home/user/proj/src/utils/parse.ts
+   7:5   error    Unexpected constant condition                       no-constant-condition
+  15:18  error    Empty block statement                              no-empty
+
+✖ 22 problems (15 errors, 7 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
