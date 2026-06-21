@@ -363,6 +363,7 @@ dependencies = [
  "clap",
  "criterion",
  "libc",
+ "rayon",
  "seccompiler",
  "serde",
  "serde_json",

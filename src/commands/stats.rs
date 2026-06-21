@@ -6,6 +6,7 @@
 //! 注: content-addressed のため重複出力は 1 件に dedup される＝ユニークな
 //! 圧縮済み出力に対する実績。compact_bytes を持たない旧フォーマットは除外する。
 
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -90,6 +91,25 @@ pub fn run() -> Result<i32> {
     Ok(0)
 }
 
+impl Stats {
+    fn merge(mut self, other: Stats) -> Stats {
+        self.count += other.count;
+        self.legacy += other.legacy;
+        self.orig_b += other.orig_b;
+        self.comp_b += other.comp_b;
+        self.orig_l += other.orig_l;
+        self.comp_l += other.comp_l;
+
+        for (k, v) in other.by_filter {
+            let e = self.by_filter.entry(k).or_default();
+            e.count += v.count;
+            e.orig_b += v.orig_b;
+            e.comp_b += v.comp_b;
+        }
+        self
+    }
+}
+
 fn collect_stats(dir: &Path) -> Result<Option<Stats>> {
     let read = match fs::read_dir(dir) {
         Ok(r) => r,
@@ -99,35 +119,42 @@ fn collect_stats(dir: &Path) -> Result<Option<Stats>> {
         Err(e) => return Err(e.into()),
     };
 
-    let mut stats = Stats::default();
+    let entries: Vec<fs::DirEntry> = read.collect::<std::io::Result<Vec<_>>>()?;
 
-    for entry in read {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
-        let Ok(s) = fs::read_to_string(&path) else {
-            continue;
-        };
-        let Ok(meta) = serde_json::from_str::<Meta>(&s) else {
-            continue;
-        };
-        // Skip pre-compact-tracking ("legacy") metadata.
-        if meta.compact_bytes == 0 && meta.byte_len > 0 {
-            stats.legacy += 1;
-            continue;
-        }
-        stats.count += 1;
-        stats.orig_b += meta.byte_len as u64;
-        stats.comp_b += meta.compact_bytes as u64;
-        stats.orig_l += meta.line_count as u64;
-        stats.comp_l += meta.compact_lines as u64;
-        let e = stats.by_filter.entry(meta.filter).or_default();
-        e.count += 1;
-        e.orig_b += meta.byte_len as u64;
-        e.comp_b += meta.compact_bytes as u64;
-    }
+    let stats = entries
+        .into_par_iter()
+        .map(|entry| {
+            let mut local_stats = Stats::default();
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                return local_stats;
+            }
+            let Ok(s) = fs::read_to_string(&path) else {
+                return local_stats;
+            };
+            let Ok(meta) = serde_json::from_str::<Meta>(&s) else {
+                return local_stats;
+            };
+
+            // Skip pre-compact-tracking ("legacy") metadata.
+            if meta.compact_bytes == 0 && meta.byte_len > 0 {
+                local_stats.legacy += 1;
+                return local_stats;
+            }
+            local_stats.count += 1;
+            local_stats.orig_b += meta.byte_len as u64;
+            local_stats.comp_b += meta.compact_bytes as u64;
+            local_stats.orig_l += meta.line_count as u64;
+            local_stats.comp_l += meta.compact_lines as u64;
+
+            let e = local_stats.by_filter.entry(meta.filter).or_default();
+            e.count += 1;
+            e.orig_b += meta.byte_len as u64;
+            e.comp_b += meta.compact_bytes as u64;
+
+            local_stats
+        })
+        .reduce(Stats::default, |a, b| a.merge(b));
 
     Ok(Some(stats))
 }
