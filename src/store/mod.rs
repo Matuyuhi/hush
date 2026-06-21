@@ -182,7 +182,9 @@ mod tests {
     #[test]
     fn put_creates_file_and_metadata() {
         let dir = tempdir().unwrap();
-        let store = Store { objects: dir.path().to_path_buf() };
+        let store = Store {
+            objects: dir.path().to_path_buf(),
+        };
 
         let original = b"hello world";
         let command = vec!["echo".to_string(), "hello world".to_string()];
@@ -213,7 +215,9 @@ mod tests {
     #[test]
     fn put_skips_existing() {
         let dir = tempdir().unwrap();
-        let store = Store { objects: dir.path().to_path_buf() };
+        let store = Store {
+            objects: dir.path().to_path_buf(),
+        };
 
         let original = b"duplicate content";
         let meta = PutMeta {
