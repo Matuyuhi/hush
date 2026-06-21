@@ -147,6 +147,59 @@ mod tests {
     use super::*;
 
     #[test]
+    fn get_returns_original_bytes_when_found() {
+        let dir = std::env::temp_dir().join("hush_test_get_success");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let store = Store {
+            objects: dir.clone(),
+        };
+
+        let id = "abcdef123456";
+        let content = b"hello world";
+        fs::write(dir.join(id), content).unwrap();
+
+        let result = store.get(id).unwrap();
+        assert_eq!(result, content);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn get_returns_not_found_when_missing() {
+        let dir = std::env::temp_dir().join("hush_test_get_missing");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let store = Store {
+            objects: dir.clone(),
+        };
+
+        let result = store.get("abcdef123456");
+        assert!(matches!(result, Err(Error::NotFound(_))));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn get_returns_store_error_on_io_error() {
+        let dir = std::env::temp_dir().join("hush_test_get_io_error");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let store = Store {
+            objects: dir.clone(),
+        };
+
+        // Create a directory with the same name as ID to force an IO error
+        let id = "abcdef123456";
+        fs::create_dir(dir.join(id)).unwrap();
+
+        let result = store.get(id);
+        assert!(matches!(result, Err(Error::Store(_))));
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
         // Valid cases (alphanumeric, typical hex output)
         assert!(validate_id("abcdef123456").is_ok());
