@@ -1,0 +1,363 @@
+commit 00000000000000070000000b0000000d00000011
+Author:  <>
+Date:   Mon Jan 01 10:00:00 2025 +0000
+
+    
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 9e3779b100009e3e000f424e000186a400001f00
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 02 10:02:00 2025 +0000
+
+    feat: add per-command compression report
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+commit 13c6ef36200013c75001e849100030d3b00003de
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 03 10:04:00 2025 +0000
+
+    fix: handle empty stderr in cargo filter
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+commit 1daa66d130001daac002dc6d4000493d200005cd
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 04 10:06:00 2025 +0000
+
+    refactor: extract shared truncate helpers
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 278dde6c4000278e3003d091700061a6900007bc
+Author:  <>
+Date:   Mon Jan 05 10:08:00 2025 +0000
+
+    test: cover grep grouping by file
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+commit 3171560750003171a004c4b5a0007a10000009ab
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 06 10:10:00 2025 +0000
+
+    docs: update README stats section
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+commit 3b54cda260003b551005b8d9d000927970000b9a
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 07 10:12:00 2025 +0000
+
+    ci: pin third-party actions to commit sha
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 4538453d700045388006acfe0000aae2e0000d89
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 08 10:14:00 2025 +0000
+
+    chore: bump tree-sitter to 0.26
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+commit 4f1bbcd880004f1bf007a1223000c34c50000f78
+Author:  <>
+Date:   Mon Jan 09 10:16:00 2025 +0000
+
+    feat: support docker ps tabular compaction
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+commit 58ff3473900058ff600895466000dbb5c0001167
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 10 10:18:00 2025 +0000
+
+    fix: keep cargo error cause without count header
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 62e2ac0ea00062e2d009896a9000f41f30001356
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 11 10:20:00 2025 +0000
+
+    
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+commit 6cc623a9b0006cc6400a7d8ec0010c88a0001545
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 12 10:22:00 2025 +0000
+
+    feat: add per-command compression report
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+commit 76a99b44c00076a9b00b71b2f00124f210001734
+Author:  <>
+Date:   Mon Jan 13 10:24:00 2025 +0000
+
+    fix: handle empty stderr in cargo filter
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 808d12dfd000808d200c65d720013d5b80001923
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 14 10:26:00 2025 +0000
+
+    refactor: extract shared truncate helpers
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+commit 8a708a7ae0008a70900d59fb500155c4f0001b12
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 15 10:28:00 2025 +0000
+
+    test: cover grep grouping by file
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+commit 94540215f0009454000e4e1f80016e2e60001d01
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 16 10:30:00 2025 +0000
+
+    docs: update README stats section
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 9e3779b100009e37700f4243b0018697d0001ef0
+Author:  <>
+Date:   Mon Jan 17 10:32:00 2025 +0000
+
+    ci: pin third-party actions to commit sha
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+commit a81af14c1000a81ae0103667e0019f01400020df
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 18 10:34:00 2025 +0000
+
+    chore: bump tree-sitter to 0.26
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+commit b1fe68e72000b1fe50112a8c1001b76ab00022cd
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 19 10:36:00 2025 +0000
+
+    feat: support docker ps tabular compaction
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit bbe1e0823000bbe1c0121eb04001cfd4200024bc
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 20 10:38:00 2025 +0000
+
+    fix: keep cargo error cause without count header
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+commit c5c5581d4000c5c5301312d47001e83d900026ab
+Author:  <>
+Date:   Mon Jan 21 10:40:00 2025 +0000
+
+    
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+commit cfa8cfb85000cfa8a01406f8a00200a70000289a
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 22 10:42:00 2025 +0000
+
+    feat: add per-command compression report
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit d98c47536000d98c1014fb1cd002191070002a89
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 23 10:44:00 2025 +0000
+
+    fix: handle empty stderr in cargo filter
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+commit e36fbeee7000e36f8015ef4100023179e0002c78
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 24 10:46:00 2025 +0000
+
+    refactor: extract shared truncate helpers
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+commit ed5336898000ed52f016e365300249e350002e67
+Author:  <>
+Date:   Mon Jan 25 10:48:00 2025 +0000
+
+    test: cover grep grouping by file
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit f736ae249000f7366017d7896002624cc0003056
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 26 10:50:00 2025 +0000
+
+    docs: update README stats section
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+
+commit 1011a25bfa0010119d018cbad90027ab63000324
+Author: Grace Hopper <grace@example.com>
+Date:   Mon Jan 27 10:52:00 2025 +0000
+
+    ci: pin third-party actions to commit sha
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+
+commit 10afd9d5ab0010afd4019bfd1c002931fa000343
+Author: Alan Turing <alan@example.com>
+Date:   Mon Jan 28 10:54:00 2025 +0000
+
+    chore: bump tree-sitter to 0.26
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+    Original output is still recoverable byte-exact via hush expand.
+    No new dependencies are introduced and core-only build is unaffected.
+
+    Co-authored-by: Lin Coder <lin@example.com>
+
+commit 114e114f5c00114e0b01ab3f5f002ab891000362
+Author:  <>
+Date:   Mon Jan 01 10:56:00 2025 +0000
+
+    feat: support docker ps tabular compaction
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+
+commit 11ec48c90d0011ec4201ba81a2002c3f28000381
+Author: Ada Lovelace <ada@example.com>
+Date:   Mon Jan 02 10:58:00 2025 +0000
+
+    fix: keep cargo error cause without count header
+
+    
+    Compaction was previously measured only at runtime via the store.
+    This adds a fixed-sample benchmark so regressions are caught in CI.
+    The filter stays pure and lossless; only the display body changes.
+

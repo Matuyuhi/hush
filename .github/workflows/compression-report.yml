@@ -1,0 +1,79 @@
+name: Compression report
+
+# 圧縮率の可視化（装飾）。gate（ci.yml）とは分離して、落ちても本体 CI を壊さない。
+#   - PR に 'compression-report' ラベル -> その PR にコメントとして表を投稿
+#   - main への push（= ラベル付き PR のマージ後など） -> job summary に表を掲示し、
+#     README の表を再生成。差分があれば「README の表を最新化する」PR を自動で開く
+#     （main 直 push はブランチルールセットで不可なので必ず PR 経由）。
+# floor 割れの検知は ci.yml の `cargo test`（meets_minimum_compression）が担う。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write # 自動 PR 用にブランチを push する
+  pull-requests: write # PR 作成 / コメント投稿
+
+jobs:
+  report:
+    # main push、または 'compression-report' ラベルが付いた時だけ動かす。
+    if: github.event_name == 'push' || github.event.label.name == 'compression-report'
+    runs-on: ubuntu-24.04
+    steps:
+      # Action は供給網を増やさないよう公式の checkout / cache のみ（commit SHA 固定）。
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Rust
+        run: |
+          rustup update stable
+          rustup default stable
+          rustc --version
+
+      - name: Cache cargo & target
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # PR（ラベル時）: レポートを生成して PR にコメント。
+      # fork からの PR は GITHUB_TOKEN が read-only でコメントできない点に注意。
+      - name: Comment on PR (labeled)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo test --test compression writes_report -- --nocapture
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file target/compression-report.md
+
+      # main push: README の表を再生成し、job summary に掲示。差分があれば更新 PR を開く。
+      # GITHUB_TOKEN が作る PR は further workflow を起動しない（無限ループしない）。
+      - name: Sync report to README + summary (push to main)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          HUSH_UPDATE_README=1 cargo test --test compression sync_readme -- --nocapture
+          cargo test --test compression writes_report -- --nocapture
+          cat target/compression-report.md >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- README.md; then
+            echo "README compression table already up to date."
+            exit 0
+          fi
+          branch="chore/compression-report-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add README.md
+          git commit -m "docs: sync compression report table"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "docs: sync compression report table" \
+            --body "Automated refresh of the compression report table in README.md, regenerated from tests/fixtures/ after a merge to main. Merge to keep the showcased ratios accurate."

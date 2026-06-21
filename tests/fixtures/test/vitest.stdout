@@ -1,0 +1,51 @@
+ ✓ src/utils/math.test.ts (4 tests) 9ms
+ ✓ src/utils/string.test.ts (5 tests) 16ms
+ ✓ src/utils/array.test.ts (6 tests) 23ms
+ ✓ src/utils/object.test.ts (7 tests) 30ms
+ ✓ src/utils/date.test.ts (8 tests) 37ms
+ ✓ src/utils/url.test.ts (9 tests) 4ms
+ ✓ src/utils/path.test.ts (10 tests) 11ms
+ ✓ src/utils/crypto.test.ts (11 tests) 18ms
+ ✓ src/utils/stream.test.ts (3 tests) 25ms
+ ✓ src/utils/buffer.test.ts (4 tests) 32ms
+ ✓ src/utils/events.test.ts (5 tests) 39ms
+ ✓ src/utils/http.test.ts (6 tests) 6ms
+ ✓ src/utils/https.test.ts (7 tests) 13ms
+ ✓ src/utils/net.test.ts (8 tests) 20ms
+ ✓ src/utils/dns.test.ts (9 tests) 27ms
+ ✓ src/utils/os.test.ts (10 tests) 34ms
+ ✓ src/utils/fs.test.ts (11 tests) 41ms
+ ✓ src/utils/util.test.ts (3 tests) 8ms
+ ✓ src/utils/assert.test.ts (4 tests) 15ms
+ ✓ src/utils/zlib.test.ts (5 tests) 22ms
+ ✓ src/utils/querystring.test.ts (6 tests) 29ms
+ ✓ src/utils/readline.test.ts (7 tests) 36ms
+ ✓ src/utils/repl.test.ts (8 tests) 3ms
+ ✓ src/utils/tls.test.ts (9 tests) 10ms
+ ✓ src/utils/cluster.test.ts (10 tests) 17ms
+ ✓ src/utils/child_process.test.ts (11 tests) 24ms
+ ✓ src/utils/worker.test.ts (3 tests) 31ms
+ ✓ src/utils/timers.test.ts (4 tests) 38ms
+ ✓ src/utils/console.test.ts (5 tests) 5ms
+ ✓ src/utils/process.test.ts (6 tests) 12ms
+ ✓ src/utils/module.test.ts (7 tests) 19ms
+ ✓ src/utils/vm.test.ts (8 tests) 26ms
+ ✓ src/utils/async_hooks.test.ts (9 tests) 33ms
+ ✓ src/utils/perf_hooks.test.ts (10 tests) 40ms
+ ✓ src/utils/v8.test.ts (11 tests) 7ms
+ ✓ src/utils/inspector.test.ts (3 tests) 14ms
+ ✓ src/components/Button.test.tsx (6 tests) 14ms
+ ✓ src/components/Modal.test.tsx (9 tests) 21ms
+ ❯ src/api/client.test.ts (5 tests | 2 failed) 33ms
+   × client > fetches user data
+     → expected status 200 to be 404
+   × client > retries on network error
+     → AssertionError: expected spy to be called 3 times, but got 1
+ ❯ src/api/auth.test.ts (4 tests | 1 failed) 18ms
+   × auth > rejects expired token
+     → TypeError: cannot read properties of undefined (reading "exp")
+
+ Test Files  2 failed | 41 passed (43)
+      Tests  3 failed | 312 passed (315)
+   Start at  10:00:00
+   Duration  2.47s (transform 412ms, setup 0ms, collect 1.10s, tests 880ms)

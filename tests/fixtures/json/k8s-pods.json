@@ -1,0 +1,676 @@
+{
+    "apiVersion": "v1",
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    },
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "web-frontend-7d9c8b6f4-aaaaa",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000001",
+                "resourceVersion": "1048576",
+                "creationTimestamp": "2026-01-01T00:00:00Z",
+                "labels": {
+                    "app": "web-frontend",
+                    "pod-template-hash": "7d9c8b6f4",
+                    "tier": "frontend"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": "2026-01-01T00:00:00Z",
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "web",
+                        "image": "registry.example.com/web-frontend:1.2.3",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "256Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-a-00001",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.11",
+                "podIP": "10.244.1.11",
+                "startTime": "2026-01-01T00:00:00Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:05Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "web-frontend-7d9c8b6f4-bbbbb",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000002",
+                "resourceVersion": "1048577",
+                "creationTimestamp": "2026-01-01T00:00:01Z",
+                "labels": {
+                    "app": "web-frontend",
+                    "pod-template-hash": "7d9c8b6f4",
+                    "tier": "frontend"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": "2026-01-01T00:00:00Z",
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "web",
+                        "image": "registry.example.com/web-frontend:1.2.3",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "256Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-a-00002",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.12",
+                "podIP": "10.244.1.12",
+                "startTime": "2026-01-01T00:00:01Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:06Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "web-frontend-7d9c8b6f4-ccccc",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000003",
+                "resourceVersion": "1048578",
+                "creationTimestamp": "2026-01-01T00:00:02Z",
+                "labels": {
+                    "app": "web-frontend",
+                    "pod-template-hash": "7d9c8b6f4",
+                    "tier": "frontend"
+                },
+                "annotations": {
+                    "kubectl.kubernetes.io/restartedAt": "2026-01-01T00:00:00Z",
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "web",
+                        "image": "registry.example.com/web-frontend:1.2.3",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "256Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-a-00003",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.13",
+                "podIP": "10.244.1.13",
+                "startTime": "2026-01-01T00:00:02Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:07Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "api-backend-5f7b9d8c6-ddddd",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000004",
+                "resourceVersion": "1048579",
+                "creationTimestamp": "2026-01-01T00:00:03Z",
+                "labels": {
+                    "app": "api-backend",
+                    "pod-template-hash": "5f7b9d8c6",
+                    "tier": "backend"
+                },
+                "annotations": {
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "api",
+                        "image": "registry.example.com/api-backend:4.5.6",
+                        "ports": [
+                            {
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-b-00001",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.21",
+                "podIP": "10.244.2.21",
+                "startTime": "2026-01-01T00:00:03Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:08Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "api-backend-5f7b9d8c6-eeeee",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000005",
+                "resourceVersion": "1048580",
+                "creationTimestamp": "2026-01-01T00:00:04Z",
+                "labels": {
+                    "app": "api-backend",
+                    "pod-template-hash": "5f7b9d8c6",
+                    "tier": "backend"
+                },
+                "annotations": {
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "api",
+                        "image": "registry.example.com/api-backend:4.5.6",
+                        "ports": [
+                            {
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-b-00002",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.22",
+                "podIP": "10.244.2.22",
+                "startTime": "2026-01-01T00:00:04Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:09Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "api-backend-5f7b9d8c6-fffff",
+                "namespace": "default",
+                "uid": "00000000-0000-0000-0000-000000000006",
+                "resourceVersion": "1048581",
+                "creationTimestamp": "2026-01-01T00:00:05Z",
+                "labels": {
+                    "app": "api-backend",
+                    "pod-template-hash": "5f7b9d8c6",
+                    "tier": "backend"
+                },
+                "annotations": {
+                    "prometheus.io/scrape": "true"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "api",
+                        "image": "registry.example.com/api-backend:4.5.6",
+                        "ports": [
+                            {
+                                "containerPort": 9090,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-b-00003",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Pending",
+                "hostIP": "10.0.0.23",
+                "podIP": "10.244.2.23",
+                "startTime": "2026-01-01T00:00:05Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "False",
+                        "lastTransitionTime": "2026-01-01T00:00:10Z",
+                        "reason": "ContainersNotReady"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "worker-queue-6c8d9f7b5-ggggg",
+                "namespace": "jobs",
+                "uid": "00000000-0000-0000-0000-000000000007",
+                "resourceVersion": "1048582",
+                "creationTimestamp": "2026-01-01T00:00:06Z",
+                "labels": {
+                    "app": "worker-queue",
+                    "pod-template-hash": "6c8d9f7b5",
+                    "tier": "worker"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "worker",
+                        "image": "registry.example.com/worker-queue:2.0.1",
+                        "resources": {
+                            "limits": {
+                                "cpu": "750m",
+                                "memory": "768Mi"
+                            },
+                            "requests": {
+                                "cpu": "375m",
+                                "memory": "384Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-c-00001",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.31",
+                "podIP": "10.244.3.31",
+                "startTime": "2026-01-01T00:00:06Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:11Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "worker-queue-6c8d9f7b5-hhhhh",
+                "namespace": "jobs",
+                "uid": "00000000-0000-0000-0000-000000000008",
+                "resourceVersion": "1048583",
+                "creationTimestamp": "2026-01-01T00:00:07Z",
+                "labels": {
+                    "app": "worker-queue",
+                    "pod-template-hash": "6c8d9f7b5",
+                    "tier": "worker"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "worker",
+                        "image": "registry.example.com/worker-queue:2.0.1",
+                        "resources": {
+                            "limits": {
+                                "cpu": "750m",
+                                "memory": "768Mi"
+                            },
+                            "requests": {
+                                "cpu": "375m",
+                                "memory": "384Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-c-00002",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.32",
+                "podIP": "10.244.3.32",
+                "startTime": "2026-01-01T00:00:07Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:12Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "worker-queue-6c8d9f7b5-iiiii",
+                "namespace": "jobs",
+                "uid": "00000000-0000-0000-0000-000000000009",
+                "resourceVersion": "1048584",
+                "creationTimestamp": "2026-01-01T00:00:08Z",
+                "labels": {
+                    "app": "worker-queue",
+                    "pod-template-hash": "6c8d9f7b5",
+                    "tier": "worker"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "worker",
+                        "image": "registry.example.com/worker-queue:2.0.1",
+                        "resources": {
+                            "limits": {
+                                "cpu": "750m",
+                                "memory": "768Mi"
+                            },
+                            "requests": {
+                                "cpu": "375m",
+                                "memory": "384Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-c-00003",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.33",
+                "podIP": "10.244.3.33",
+                "startTime": "2026-01-01T00:00:08Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:13Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "cache-redis-0",
+                "namespace": "data",
+                "uid": "00000000-0000-0000-0000-000000000010",
+                "resourceVersion": "1048585",
+                "creationTimestamp": "2026-01-01T00:00:09Z",
+                "labels": {
+                    "app": "cache-redis",
+                    "tier": "data"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "redis",
+                        "image": "registry.example.com/redis:7.2",
+                        "ports": [
+                            {
+                                "containerPort": 6379,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-c-00001",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.31",
+                "podIP": "10.244.3.40",
+                "startTime": "2026-01-01T00:00:09Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:14Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "cache-redis-1",
+                "namespace": "data",
+                "uid": "00000000-0000-0000-0000-000000000011",
+                "resourceVersion": "1048586",
+                "creationTimestamp": "2026-01-01T00:00:10Z",
+                "labels": {
+                    "app": "cache-redis",
+                    "tier": "data"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "redis",
+                        "image": "registry.example.com/redis:7.2",
+                        "ports": [
+                            {
+                                "containerPort": 6379,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "limits": {
+                                "cpu": "500m",
+                                "memory": "1Gi"
+                            },
+                            "requests": {
+                                "cpu": "250m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-c-00002",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.32",
+                "podIP": "10.244.3.41",
+                "startTime": "2026-01-01T00:00:10Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:15Z"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "ingress-nginx-controller-jjjjj",
+                "namespace": "ingress-nginx",
+                "uid": "00000000-0000-0000-0000-000000000012",
+                "resourceVersion": "1048587",
+                "creationTimestamp": "2026-01-01T00:00:11Z",
+                "labels": {
+                    "app.kubernetes.io/name": "ingress-nginx",
+                    "tier": "edge"
+                },
+                "annotations": {}
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "controller",
+                        "image": "registry.example.com/ingress-nginx:1.9.0",
+                        "ports": [
+                            {
+                                "containerPort": 80,
+                                "protocol": "TCP"
+                            },
+                            {
+                                "containerPort": 443,
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "resources": {
+                            "requests": {
+                                "cpu": "100m",
+                                "memory": "90Mi"
+                            }
+                        }
+                    }
+                ],
+                "nodeName": "node-pool-a-00001",
+                "restartPolicy": "Always"
+            },
+            "status": {
+                "phase": "Running",
+                "hostIP": "10.0.0.11",
+                "podIP": "10.244.1.50",
+                "startTime": "2026-01-01T00:00:11Z",
+                "conditions": [
+                    {
+                        "type": "Ready",
+                        "status": "True",
+                        "lastTransitionTime": "2026-01-01T00:00:16Z"
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,43 @@
+src/api/client.ts(12,5): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/api/client.ts(28,17): error TS2532: Object is possibly 'undefined'.
+src/api/client.ts(41,9): error TS2322: Type 'null' is not assignable to type 'Response'.
+src/api/client.ts(57,23): error TS2339: Property 'json' does not exist on type 'unknown'.
+src/api/client.ts(63,3): warning TS6133: 'unusedHelper' is declared but its value is never read.
+src/api/types.ts(8,14): error TS2304: Cannot find name 'RequestInit'.
+src/api/types.ts(15,9): error TS2693: 'Status' only refers to a type, but is being used as a value here.
+src/api/types.ts(22,30): error TS2769: No overload matches this call.
+src/components/Button.tsx(9,7): error TS2786: 'Button' cannot be used as a JSX component.
+src/components/Button.tsx(19,21): error TS2741: Property 'onClick' is missing in type '{}'.
+src/components/Button.tsx(34,11): error TS2322: Type 'boolean' is not assignable to type 'string'.
+src/components/Form.tsx(11,5): error TS2531: Object is possibly 'null'.
+src/components/Form.tsx(26,18): error TS2345: Argument of type 'Event' is not assignable to parameter of type 'SubmitEvent'.
+src/components/Form.tsx(44,9): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/Form.tsx(52,13): warning TS6196: 'LegacyProps' is declared but never used.
+src/hooks/useAuth.ts(7,10): error TS2305: Module '"../api"' has no exported member 'login'.
+src/hooks/useAuth.ts(18,24): error TS2571: Object is of type 'unknown'.
+src/hooks/useAuth.ts(33,7): error TS2454: Variable 'token' is used before being assigned.
+src/hooks/useData.ts(14,16): error TS2349: This expression is not callable.
+src/hooks/useData.ts(29,3): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.
+src/store/reducer.ts(6,12): error TS2353: Object literal may only specify known properties.
+src/store/reducer.ts(21,8): error TS2367: This comparison appears to be unintentional.
+src/store/reducer.ts(38,19): error TS2538: Type 'undefined' cannot be used as an index type.
+src/store/selectors.ts(9,5): error TS2740: Type '{}' is missing properties from type 'State'.
+src/store/selectors.ts(17,22): error TS2551: Property 'usrName' does not exist on type 'User'. Did you mean 'userName'?
+src/utils/format.ts(4,30): error TS7053: Element implicitly has an 'any' type.
+src/utils/format.ts(13,9): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/utils/parse.ts(8,14): error TS2552: Cannot find name 'JSON5'. Did you mean 'JSON'?
+src/utils/parse.ts(20,5): error TS2375: Type 'undefined' is not assignable to type 'string' with 'exactOptionalPropertyTypes: true'.
+src/utils/parse.ts(31,11): error TS2790: The operand of a 'delete' operator must be optional.
+Found 30 errors in 11 files.
+
+Errors  Files
+     5  src/api/client.ts:12
+     3  src/api/types.ts:8
+     3  src/components/Button.tsx:9
+     4  src/components/Form.tsx:11
+     3  src/hooks/useAuth.ts:7
+     2  src/hooks/useData.ts:14
+     3  src/store/reducer.ts:6
+     2  src/store/selectors.ts:9
+     2  src/utils/format.ts:4
+     3  src/utils/parse.ts:8
