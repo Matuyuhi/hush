@@ -187,7 +187,9 @@ mod unix_impl {
 
         for (name, outcome) in &before {
             rows.push(Row::Line(format!(
-                "    {:<26} {}",
+                // 幅 26 に左詰め（リテラル空白は入れない）。23 字の probe 名なら
+                // 3 つの詰め空白が入り、従来のハードコード整形と桁が一致する。
+                "    {:<26}{}",
                 name,
                 outcome.describe()
             )));
@@ -214,7 +216,9 @@ mod unix_impl {
 
         for (name, outcome) in &after {
             rows.push(Row::Line(format!(
-                "    {:<26} {}",
+                // 幅 26 に左詰め（リテラル空白は入れない）。23 字の probe 名なら
+                // 3 つの詰め空白が入り、従来のハードコード整形と桁が一致する。
+                "    {:<26}{}",
                 name,
                 outcome.describe()
             )));
@@ -222,7 +226,10 @@ mod unix_impl {
         rows.push(Row::Rule);
 
         // Verdict: both must be blocked after the gate (required for PASS).
-        let post_blocked = after.iter().all(|(_, outcome)| outcome.is_blocked());
+        // Guard against an empty probe list: `all` is vacuously true on an empty
+        // iterator, which would otherwise yield a meaningless PASS.
+        let post_blocked =
+            !after.is_empty() && after.iter().all(|(_, outcome)| outcome.is_blocked());
         // Credibility check: were they open before the gate?
         let pre_open = before.iter().any(|(_, outcome)| !outcome.is_blocked());
         let verdict = if post_blocked && pre_open {
