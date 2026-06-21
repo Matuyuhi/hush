@@ -14,6 +14,7 @@ pub mod cargo_build;
 pub mod cargo_test;
 pub mod common;
 pub mod diff;
+pub mod docker_build;
 pub mod du_tree;
 pub mod find;
 pub mod git_diff;
@@ -96,6 +97,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("make", _) => make::run(input),
         ("du" | "tree", _) => du_tree::run(input),
         ("docker", "ps" | "images") => tabular::run(input),
+        ("docker", "build" | "buildx") => docker_build::run(input),
         ("kubectl", "get" | "top") => tabular::run(input),
         ("pip" | "pip3", "list") => tabular::run(input),
         ("ps" | "df" | "lsblk" | "free" | "ss", _) => tabular::run(input),
