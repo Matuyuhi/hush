@@ -19,7 +19,7 @@
 //! 表示されるだけで害はない。）
 
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 
@@ -249,8 +249,9 @@ pub fn run() -> Result<i32> {
         }
         ToolKind::Read => {
             let argv = vec!["read".to_string(), h.file_path.clone()];
-            // 受け取った本文を圧縮（ディスク再読込はしない）。
-            let out = filters::read::run_hook_content(h.stdout.as_bytes());
+            // 受け取った本文を圧縮（ディスク再読込はしない）。対応言語の大きいソースは
+            // AST 署名へ畳み、それ以外は head 切り。
+            let out = filters::read::run_hook(Path::new(&h.file_path), h.stdout.as_bytes());
             (out, argv)
         }
     };

@@ -72,6 +72,41 @@ pub fn run_hook_content(bytes: &[u8]) -> Result<FilterOutput> {
     })
 }
 
+/// Read hook の入口。対応言語の大きいソースは AST 署名へ畳み、それ以外は head 切り。
+///
+/// 流れ:
+/// 1. まず `run_hook_content` で head 切りを計算。閾値以下（`original=None`）ならそのまま
+///    返して hook を no-op にする（小ファイルは触らない）。
+/// 2. 大きいファイルなら、`feature="ast"` かつ対応拡張子のとき AST 署名を試し、head 切りより
+///    **小さくなる場合だけ**署名版を採る（ファイル全体の構造を見せられて削減も大きい）。
+///    未対応言語・パース失敗・署名が空/縮まない場合は head 切りにフォールバック。
+///
+/// 署名でもディスクは再読込しない（受け取ったバイト列をそのまま tree-sitter に渡す）。
+pub fn run_hook(path: &Path, bytes: &[u8]) -> Result<FilterOutput> {
+    let head = run_hook_content(bytes)?;
+    if head.original.is_none() {
+        return Ok(head); // 閾値以下は畳まない
+    }
+    #[cfg(feature = "ast")]
+    if let Some(sig) = signatures_if_smaller(path, bytes, head.compact.len()) {
+        return Ok(sig);
+    }
+    #[cfg(not(feature = "ast"))]
+    let _ = path; // ast 無効時は path 未使用
+    Ok(head)
+}
+
+/// AST 署名を抽出し、head 切り(`head_len` バイト)より短いときだけ `Some` で返す。
+/// 未対応言語/パース失敗/署名なし/縮まない場合は `None`（呼び側が head 切りに倒す）。
+#[cfg(feature = "ast")]
+fn signatures_if_smaller(path: &Path, bytes: &[u8], head_len: usize) -> Option<FilterOutput> {
+    let sig = crate::ast::signatures(path, bytes).ok()?;
+    let useful = sig.shown_lines > 0
+        && sig.compact != "(no signatures found)"
+        && sig.compact.len() < head_len;
+    useful.then_some(sig)
+}
+
 #[cfg(feature = "ast")]
 fn signatures_of(path: &Path, bytes: Vec<u8>) -> Result<FilterOutput> {
     // 言語は拡張子で振り分け（rs / py / go / ts / tsx / js / jsx / mjs / cjs）。
@@ -114,5 +149,52 @@ mod tests {
         assert!(lines[HOOK_HEAD].contains("more lines"));
         // 原文は byte 厳密に保存される。
         assert_eq!(out.original.unwrap(), body.into_bytes());
+    }
+
+    // run_hook（入口）は feature 両対応で head 切りへフォールバックすること。
+    #[test]
+    fn run_hook_large_unsupported_is_head_truncated() {
+        let body: String = (1..=400).map(|n| format!("plain line {n}\n")).collect();
+        let out = run_hook(Path::new("notes.log"), body.as_bytes()).unwrap();
+        assert_eq!(out.filter_name, "read");
+        assert!(out.original.is_some());
+    }
+
+    #[test]
+    fn run_hook_small_file_is_noop_even_for_supported_lang() {
+        // 閾値以下は署名を試す前に no-op（original=None）。
+        let out = run_hook(Path::new("tiny.rs"), b"fn main() {}\n").unwrap();
+        assert!(out.original.is_none());
+    }
+}
+
+#[cfg(all(test, feature = "ast"))]
+mod ast_hook_tests {
+    use super::*;
+
+    #[test]
+    fn run_hook_uses_signatures_for_large_supported_source() {
+        // 300 行超の Rust。末尾の関数は head 切り(250 行)では見えないが、署名なら見える。
+        let mut src = String::new();
+        for n in 0..320 {
+            src.push_str(&format!("// filler comment line {n}\n"));
+        }
+        src.push_str("pub fn late_function(z: u64) -> u64 { z + 1 }\n");
+        let out = run_hook(Path::new("big.rs"), src.as_bytes()).unwrap();
+        assert_eq!(out.filter_name, "read-sig");
+        assert!(out.compact.contains("pub fn late_function(z: u64) -> u64"));
+        // 原文は byte 厳密に保存（expand で復元可能）。
+        assert_eq!(out.original.unwrap(), src.into_bytes());
+    }
+
+    #[test]
+    fn run_hook_keeps_head_when_signatures_not_smaller() {
+        // 署名が head 切りより縮まないケース（全行が独立した短い定数）は head 切りを採る。
+        let src: String = (0..320)
+            .map(|n| format!("const C{n}: u8 = {};\n", n % 256))
+            .collect();
+        let out = run_hook(Path::new("consts.rs"), src.as_bytes()).unwrap();
+        // 署名 ~320 行 > head 250 行なので head 切り("read")にフォールバック。
+        assert_eq!(out.filter_name, "read");
     }
 }
