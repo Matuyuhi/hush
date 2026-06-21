@@ -113,9 +113,11 @@ impl Store {
     }
 }
 
-/// パストラバーサル防止。ID は英数字のみ（content_id は hex なので満たす）。
+/// パストラバーサル防止。ID は content_id が生成する小文字 hex（0-9a-f）に限定する。
+/// 大文字・非 hex 文字・パス区切りを弾くことで、検証を実 ID の形式と厳密に一致させる
+/// （実 ID は常に小文字 hex なので正規の入力には影響しない）。
 fn validate_id(id: &str) -> Result<()> {
-    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
+    if id.is_empty() || !id.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f')) {
         return Err(Error::NotFound(format!("invalid id: {id:?}")));
     }
     Ok(())
@@ -201,16 +203,23 @@ mod tests {
     }
 
     #[test]
-    fn validate_id_accepts_alphanumeric_and_rejects_invalid_chars() {
-        // Valid cases (alphanumeric, typical hex output)
+    fn validate_id_accepts_lowercase_hex_and_rejects_others() {
+        // Valid cases: lowercase hex, the exact form content_id produces.
         assert!(validate_id("abcdef123456").is_ok());
         assert!(validate_id("0123456789").is_ok());
         assert!(validate_id("a").is_ok());
-        assert!(validate_id("Z").is_ok());
-        assert!(validate_id("A1z9").is_ok());
+        assert!(validate_id("0").is_ok());
 
         // Invalid cases: empty
         assert!(validate_id("").is_err());
+
+        // Invalid cases: uppercase hex and non-hex letters are now rejected
+        // (real ids are always lowercase hex).
+        assert!(validate_id("ABCDEF012345").is_err());
+        assert!(validate_id("Z").is_err());
+        assert!(validate_id("A1z9").is_err());
+        assert!(validate_id("g").is_err());
+        assert!(validate_id("abcg").is_err());
 
         // Invalid cases: path traversal and directory separators
         assert!(validate_id("../123").is_err());
