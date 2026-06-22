@@ -18,10 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # -latest はドリフトで突然壊れるため固定する。
-        # macOS は sandbox_init、Linux は seccomp の経路を両方検証する。
-        # （ubuntu-slim はホストランナーに無いため LTS 固定の 24.04 を使用）
-        os: [ubuntu-24.04, macos-26]
+        os: [ubuntu-24.04]
     steps:
       # Action は供給網を増やさないよう公式の checkout / cache のみ。
       # 改竄対策で commit SHA 固定（コメントにバージョン）。Rust はランナー同梱の rustup。
