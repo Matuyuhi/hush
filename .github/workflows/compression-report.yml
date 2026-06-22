@@ -10,10 +10,10 @@ on:
   push:
     branches: [main]
     paths:
-      - *.rs
-      - *.toml
-      - *.lock
-      - *.yml
+      - '*.rs'
+      - '*.toml'
+      - '*.lock'
+      - '*.yml'
   pull_request:
     types: [labeled]
 
