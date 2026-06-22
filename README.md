@@ -64,11 +64,11 @@ Regenerated from the fixtures and refreshed automatically by CI after each merge
 ```
               hush compression report
 ---------------------------------------------------
-                27 sample commands
+                30 sample commands
 ---------------------------------------------------
-  original      204 KB   3,943 lines   ~51.1K tok
-  compressed   44.7 KB     579 lines   ~11.2K tok
-  saved         160 KB       (78.1%)   ~39.9K tok
+  original      214 KB   4,122 lines   ~53.5K tok
+  compressed   47.6 KB     632 lines   ~11.9K tok
+  saved         166 KB       (77.8%)   ~41.6K tok
 ---------------------------------------------------
   by command
   ls                        57.2 KB -> 1.8 KB   97%
@@ -81,14 +81,17 @@ Regenerated from the fixtures and refreshed automatically by CI after each merge
   git show                   4.4 KB ->  735 B   83%
   npm install                4.6 KB -> 1.0 KB   77%
   make                       3.6 KB ->  635 B   83%
+  kubectl logs               4.4 KB -> 1.5 KB   66%
   pytest                     7.0 KB -> 4.1 KB   41%
   diff                       2.8 KB ->  169 B   94%
   go test                    2.8 KB ->  294 B   89%
+  docker build               3.1 KB ->  742 B   76%
   docker ps                  6.5 KB -> 4.1 KB   37%
   tree                       3.0 KB ->  675 B   78%
   cargo test                 2.5 KB ->  331 B   87%
   git diff                   2.0 KB ->   94 B   95%
   vitest                     2.3 KB ->  573 B   75%
+  docker build (buildkit)    2.1 KB ->  700 B   66%
   python (traceback)         2.7 KB -> 1.4 KB   50%
   pip list                   1.5 KB ->  735 B   52%
   eslint                     2.4 KB -> 1.8 KB   25%
