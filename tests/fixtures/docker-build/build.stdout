@@ -1,0 +1,73 @@
+Sending build context to Docker daemon  3.584MB
+Step 1/9 : FROM python:3.11-slim
+3.11-slim: Pulling from library/python
+a803e7c4b030: Pulling fs layer
+bf3336e84c8e: Pulling fs layer
+1f753d8e7c8e: Pulling fs layer
+9b2f6e3a1d44: Pulling fs layer
+a803e7c4b030: Downloading [>                                                  ]  539kB/30.43MB
+a803e7c4b030: Downloading [=========>                                         ]  6.1MB/30.43MB
+a803e7c4b030: Verifying Checksum
+a803e7c4b030: Download complete
+bf3336e84c8e: Downloading [==>                                                ]  1.1MB/11.24MB
+bf3336e84c8e: Download complete
+1f753d8e7c8e: Downloading [============>                                      ]  2.0MB/8.12MB
+1f753d8e7c8e: Download complete
+9b2f6e3a1d44: Download complete
+a803e7c4b030: Extracting [=>                                                 ]  524kB/30.43MB
+a803e7c4b030: Extracting [==================================================>]  30.43MB/30.43MB
+a803e7c4b030: Pull complete
+bf3336e84c8e: Extracting [==================================================>]  11.24MB/11.24MB
+bf3336e84c8e: Pull complete
+1f753d8e7c8e: Extracting [==================================================>]  8.12MB/8.12MB
+1f753d8e7c8e: Pull complete
+9b2f6e3a1d44: Extracting [==================================================>]  4.10kB/4.10kB
+9b2f6e3a1d44: Pull complete
+Digest: sha256:abcd1234ef567890abcd1234ef567890abcd1234ef567890abcd1234ef567890
+Status: Downloaded newer image for python:3.11-slim
+ ---> 1a2b3c4d5e6f
+Step 2/9 : WORKDIR /app
+ ---> Running in 0f1e2d3c4b5a
+Removing intermediate container 0f1e2d3c4b5a
+ ---> 9a8b7c6d5e4f
+Step 3/9 : COPY requirements.txt .
+ ---> 0011223344556677
+Step 4/9 : RUN apt-get update && apt-get install -y gcc
+ ---> Running in aabbccddeeff
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian bookworm/main amd64 Packages [8780 kB]
+Get:4 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [13.5 kB]
+Fetched 8999 kB in 2s (4493 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Setting up gcc (4:12.2.0-3) ...
+Removing intermediate container aabbccddeeff
+ ---> 1234abcd5678
+Step 5/9 : RUN pip install -r requirements.txt
+ ---> Running in 9988776655ff
+Collecting flask==3.0.0
+  Downloading flask-3.0.0-py3-none-any.whl (99 kB)
+Collecting werkzeug>=3.0.0
+  Downloading werkzeug-3.0.1-py3-none-any.whl (226 kB)
+Installing collected packages: werkzeug, flask
+Successfully installed flask-3.0.0 werkzeug-3.0.1
+Removing intermediate container 9988776655ff
+ ---> fedcba987654
+Step 6/9 : COPY . .
+ ---> a1b2c3d4e5f6
+Step 7/9 : EXPOSE 8000
+ ---> Running in 1a1a1a1a2b2b
+Removing intermediate container 1a1a1a1a2b2b
+ ---> b2b2b2b2c3c3
+Step 8/9 : ENV PORT=8000
+ ---> Running in 2b2b2b2b3c3c
+Removing intermediate container 2b2b2b2b3c3c
+ ---> c3c3c3c3d4d4
+Step 9/9 : CMD ["python", "app.py"]
+ ---> Running in 3c3c3c3c4d4d
+Removing intermediate container 3c3c3c3c4d4d
+ ---> d4d4d4d4e5e5
+Successfully built d4d4d4d4e5e5
+Successfully tagged myapp:latest
