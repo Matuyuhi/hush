@@ -114,6 +114,13 @@ const CASES: &[Case] = &[
         min_ratio: 0.55,
     },
     Case {
+        cmd: "docker build (buildkit)",
+        argv: &["docker", "build", "."],
+        stdout: Some("docker-build/buildkit.stdout"),
+        stderr: None,
+        min_ratio: 0.55,
+    },
+    Case {
         cmd: "json (kubectl -o json)",
         argv: &["kubectl", "get", "pods", "-o", "json"],
         stdout: Some("json/k8s-pods.json"),

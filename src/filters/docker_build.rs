@@ -9,7 +9,7 @@
 //! 進捗は stdout（レガシー）にも stderr（BuildKit `--progress=plain`）にも出るため
 //! 両方を処理する。docker build に見えない出力は passthrough に委ねる。
 
-use super::common::{collapse_blank_runs, combine_raw, dedup_all, strip_ansi, truncate_head_tail};
+use super::common::{combine_raw, dedup_all, strip_ansi, truncate_head_tail};
 use super::{FilterInput, FilterOutput, passthrough};
 use crate::error::Result;
 
@@ -33,13 +33,17 @@ const NOISE_PREFIXES: &[&str] = &[
     "Sending build context",
     "Removing intermediate container",
     "---> Running in",
-    // BuildKit の内部ステップ（コンテキスト/定義の転送・メタ解決）。
+    // BuildKit の内部ステップ・レイヤー取得・エクスポート進捗。
+    "[internal] ",
     "transferring context",
     "transferring dockerfile",
     "load build definition",
     "load .dockerignore",
     "load metadata",
     "resolve docker.io",
+    "sha256:", // レイヤー blob の DL 進捗（最終イメージは "writing image sha256:" で残る）。
+    "extracting", // BuildKit の小文字 extracting（レガシーの "Extracting" は別途）。
+    "exporting ", // exporting layers / exporting to image（結果は writing image / naming to で残る）。
 ];
 
 /// BuildKit 行の `#<N>` マーカーと、続く小数タイムスタンプを取り除いた本体を返す。
@@ -84,7 +88,7 @@ fn strip_layer_id(t: &str) -> &str {
 fn is_noise(line: &str) -> bool {
     let t = line.trim();
     if t.is_empty() {
-        return false; // 空行は collapse_blank_runs に任せる。
+        return false; // 空行は run() 側で別途除外する。
     }
     let body = buildkit_body(t);
     let lower = body.to_ascii_lowercase();
@@ -96,6 +100,19 @@ fn is_noise(line: &str) -> bool {
     if let Some(after) = body.strip_prefix("---> ") {
         let r = after.trim();
         if r == "Using cache" || (!r.is_empty() && r.chars().all(|c| c.is_ascii_hexdigit())) {
+            return true;
+        }
+    }
+    // BuildKit のステップ完了行 `DONE 3.6s`（直前の `#N [stage]` 見出しと重複する）。
+    // 期間（数字+`s`）の形のみを対象にし、RUN が出力する "DONE ..." 等は誤爆させない。
+    if let Some(rest) = body.strip_prefix("DONE ") {
+        let r = rest.trim();
+        if r.len() >= 2
+            && r.ends_with('s')
+            && r[..r.len() - 1]
+                .chars()
+                .all(|c| c.is_ascii_digit() || c == '.')
+        {
             return true;
         }
     }
@@ -117,10 +134,13 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     let orig_lines = combined.lines().count();
 
-    let kept: Vec<&str> = combined.lines().filter(|l| !is_noise(l)).collect();
-    let collapsed = collapse_blank_runs(&kept.join("\n"));
-    let lines: Vec<&str> = collapsed.lines().collect();
-    let deduped = dedup_all(&lines);
+    // ノイズ行と空行（ステップ間の視覚的区切り）を落とす。構造は `Step`/`#N [stage]`
+    // 見出しが示すので、空行が無くても読みやすさは保たれる。
+    let kept: Vec<&str> = combined
+        .lines()
+        .filter(|l| !l.trim().is_empty() && !is_noise(l))
+        .collect();
+    let deduped = dedup_all(&kept);
 
     // docker build に見えない（何も落とせず行数も変わらない）なら passthrough に委ねる。
     if deduped.len() == orig_lines && orig_lines <= MAX_LINES {
@@ -227,9 +247,70 @@ ERROR: failed to solve: process did not complete successfully
         assert!(is_noise(
             "#8 0.521 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]"
         ));
-        // ステップ見出し・DONE・エラーは残す。
+        // レイヤー blob DL・extracting・内部ステップ・ステップ完了はノイズ。
+        assert!(is_noise(
+            "#4 sha256:aaaa1111bbbb2222 30.43MB / 30.43MB 1.2s done"
+        ));
+        assert!(is_noise("#4 extracting sha256:aaaa1111bbbb2222 1.1s done"));
+        assert!(is_noise(
+            "#1 [internal] load build definition from Dockerfile"
+        ));
+        assert!(is_noise("#5 DONE 5.3s"));
+        // ステップ見出し・エラー・最終イメージは残す。
         assert!(!is_noise("#5 [2/5] RUN apt-get update"));
-        assert!(!is_noise("#5 DONE 5.3s"));
         assert!(!is_noise("#8 ERROR: process did not complete"));
+        assert!(!is_noise("#11 writing image sha256:d4d4d4d4e5e5 done"));
+        // RUN が出力する "DONE ..." は期間形でないので誤爆しない。
+        assert!(!is_noise("#9 12.3 DONE building assets"));
+    }
+
+    #[test]
+    fn summarizes_buildkit_progress_output() {
+        let out = run_stdout(
+            "\
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 412B done
+#1 DONE 0.0s
+
+#4 [1/3] FROM docker.io/library/alpine@sha256:abcd1234
+#4 sha256:aaaa1111bbbb2222 3.40MB / 3.40MB 0.2s done
+#4 extracting sha256:aaaa1111bbbb2222 0.1s done
+#4 DONE 0.4s
+
+#5 [2/3] RUN apk add --no-cache curl
+#5 1.234 fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main
+#5 DONE 1.5s
+
+#6 [3/3] COPY . .
+#6 DONE 0.0s
+
+#7 exporting to image
+#7 exporting layers 0.3s done
+#7 writing image sha256:d4d4d4d4e5e5f6f6 done
+#7 naming to docker.io/library/myapp:latest done
+#7 DONE 0.5s
+",
+        );
+        assert_eq!(out.filter_name, "docker-build");
+        // レイヤー blob・extracting・内部ステップ・DONE・空行は消える。
+        assert!(!out.compact.contains("sha256:aaaa1111bbbb2222"));
+        assert!(!out.compact.contains("extracting"));
+        assert!(!out.compact.contains("[internal]"));
+        assert!(!out.compact.contains("DONE"));
+        assert!(!out.compact.contains("exporting"));
+        assert!(!out.compact.contains("transferring"));
+        // ステップ見出し・最終イメージは残る。
+        assert!(out.compact.contains("[1/3] FROM"));
+        assert!(out.compact.contains("[2/3] RUN apk add --no-cache curl"));
+        assert!(out.compact.contains("[3/3] COPY . ."));
+        assert!(
+            out.compact
+                .contains("writing image sha256:d4d4d4d4e5e5f6f6 done")
+        );
+        assert!(
+            out.compact
+                .contains("naming to docker.io/library/myapp:latest done")
+        );
+        assert!(out.shown_lines < out.orig_lines);
     }
 }
