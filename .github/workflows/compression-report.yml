@@ -16,6 +16,14 @@ permissions:
   contents: write # 自動 PR 用にブランチを push する
   pull-requests: write # PR 作成 / コメント投稿
 
+# 同時実行の抑止。main push の同期は「最新の main を README に反映する」だけなので、
+# 連続マージで複数 run が重なったら古い run はキャンセルし、最新だけ走らせる。これにより
+# 固定の同期ブランチへの force-push が競合しない。PR コメント（ラベル時）は PR ごとに
+# 別グループになるので互いに干渉しない。
+concurrency:
+  group: compression-report-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   report:
     # main push、または 'compression-report' ラベルが付いた時だけ動かす。
@@ -82,13 +90,22 @@ jobs:
             echo "README compression table already up to date."
             exit 0
           fi
-          branch="chore/compression-report-${{ github.run_id }}"
+          # 固定ブランチに集約する（run ごとに別ブランチを切らない）。毎回 main から
+          # 作り直して README 同期分だけを載せ、force-push で更新する。常に最新 main を
+          # ベースにするので、何度マージしても同じ箇所を編集する複数 PR が衝突しない。
+          branch="chore/compression-report-sync"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add README.md
           git commit -m "docs: sync compression report table"
-          git push origin "$branch"
-          gh pr create --base main --head "$branch" \
-            --title "docs: sync compression report table" \
-            --body "Automated refresh of the compression report table in README.md, regenerated from tests/fixtures/ after a merge to main. Merge to keep the showcased ratios accurate."
+          git push --force origin "$branch"
+          # open PR があれば force-push で更新済み。無ければ新規作成する。
+          existing="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            echo "Updated existing PR #$existing on $branch."
+          else
+            gh pr create --base main --head "$branch" \
+              --title "docs: sync compression report table" \
+              --body "Automated refresh of the compression report table in README.md, regenerated from tests/fixtures/ after a merge to main. This PR is reused across merges (force-pushed to stay based on the latest main), so merging it keeps the showcased ratios accurate without piling up conflicting PRs."
+          fi
