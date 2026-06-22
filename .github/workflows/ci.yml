@@ -31,6 +31,17 @@ jobs:
           rustup component add rustfmt clippy
           rustc --version
 
+      # Cargo.lock には hush 自身の version 行が含まれ、release（bump）のたびに変わる。
+      # それを除いてハッシュし「依存が実際に変わった時だけ」キーが変わるようにする
+      # （依存の version 変更は checksum 行に必ず出るので取りこぼさない）。これをしないと
+      # bump ごとに別キーで巨大キャッシュが新規保存され、リポジトリのキャッシュ上限を食い潰す。
+      - name: Compute version-independent cargo cache key
+        id: cargo_key
+        shell: bash
+        run: |
+          key=$(grep -v '^version = "' Cargo.lock | shasum -a 256 | cut -d' ' -f1)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
       - name: Cache cargo & target
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
@@ -39,7 +50,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ steps.cargo_key.outputs.key }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
