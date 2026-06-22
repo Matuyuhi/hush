@@ -109,7 +109,7 @@ Homebrew (prebuilt binary, no compile):
 
 ```sh
 brew tap Matuyuhi/tools
-brew install Matuyuhi/tools/hush          # = Matuyuhi/tools/hush
+brew install --formula hush          # = Matuyuhi/tools/hush
 ```
 
 From source (requires Rust):
