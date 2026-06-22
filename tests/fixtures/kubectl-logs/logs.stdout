@@ -1,0 +1,45 @@
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.001Z INFO  starting api server on :8080
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.012Z INFO  connected to postgres at db:5432
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.103Z INFO  request_id=1 GET /v1/users 200 12ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.221Z INFO  request_id=2 GET /v1/users/42 200 8ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.334Z INFO  request_id=3 GET /v1/users/43 200 9ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.451Z INFO  request_id=4 POST /v1/orders 201 34ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.502Z WARN  request_id=5 slow upstream payments 1.4s
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.610Z INFO  request_id=6 GET /v1/orders/1001 200 11ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.733Z INFO  request_id=7 GET /healthz 200 1ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:00.845Z INFO  request_id=8 GET /v1/users 200 13ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.050Z INFO  starting api server on :8080
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.061Z INFO  connected to postgres at db:5432
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.180Z INFO  request_id=11 GET /v1/users 200 10ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.295Z INFO  request_id=12 GET /v1/products 200 22ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.401Z INFO  request_id=13 GET /v1/products/7 200 7ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.522Z ERROR request_id=14 GET /v1/products/999 500 upstream returned 503
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.640Z INFO  request_id=15 GET /v1/users 200 12ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.751Z WARN  request_id=16 deprecated endpoint /v1/legacy used
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.866Z INFO  request_id=17 POST /v1/orders 201 41ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:00.970Z INFO  request_id=18 GET /healthz 200 1ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.005Z INFO  worker booted, concurrency=8
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.120Z INFO  job=4500 type=email started
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.260Z INFO  job=4500 type=email done in 132ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.388Z INFO  job=4501 type=thumbnail started
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.560Z INFO  job=4501 type=thumbnail done in 170ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.690Z INFO  job=4502 type=webhook started
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:00.910Z ERROR job=4502 type=webhook failed: connection refused to https://hooks.example.com
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.010Z WARN  job=4502 will retry in 30s (attempt 1/5)
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.140Z INFO  job=4503 type=email started
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.300Z INFO  job=4503 type=email done in 158ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:01.001Z INFO  request_id=21 GET /v1/users 200 12ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:01.115Z INFO  request_id=22 GET /v1/users/50 200 8ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:01.229Z INFO  request_id=23 GET /v1/users/51 200 9ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:01.342Z INFO  request_id=24 POST /v1/orders 201 36ms
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:01.455Z INFO  request_id=25 GET /v1/orders/1002 200 10ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:01.180Z INFO  request_id=31 GET /v1/users 200 11ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:01.295Z INFO  request_id=32 GET /v1/products 200 19ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:01.410Z INFO  request_id=33 GET /v1/products/8 200 6ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:01.520Z INFO  request_id=34 GET /v1/users 200 12ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.420Z INFO  job=4504 type=thumbnail started
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.600Z INFO  job=4504 type=thumbnail done in 175ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:01.760Z INFO  job=4502 type=webhook retry succeeded
+[pod/api-7d9f8b-abcde/api] 2024-06-21T10:00:02.001Z INFO  request_id=41 GET /healthz 200 1ms
+[pod/api-7d9f8b-fghij/api] 2024-06-21T10:00:02.050Z INFO  request_id=42 GET /healthz 200 1ms
+[pod/worker-554c7-klmno/worker] 2024-06-21T10:00:02.100Z INFO  all queues drained, idle
