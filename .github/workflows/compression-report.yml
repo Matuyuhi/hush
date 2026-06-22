@@ -9,6 +9,11 @@ name: Compression report
 on:
   push:
     branches: [main]
+    paths:
+      - *.rs
+      - *.toml
+      - *.lock
+      - *.yml
   pull_request:
     types: [labeled]
 
