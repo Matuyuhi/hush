@@ -25,7 +25,7 @@ pub fn run(cmd: cli::Cmd) -> Result<i32> {
         cli::Cmd::Doctor => commands::doctor::run(),
         cli::Cmd::Expand { id } => commands::expand::run(&id),
         cli::Cmd::Read { path, signatures } => commands::read::run(&path, signatures),
-        cli::Cmd::Gc { days } => commands::gc::run(days),
+        cli::Cmd::Gc { days, dry_run } => commands::gc::run(days, dry_run),
         cli::Cmd::Stats => commands::stats::run(),
         cli::Cmd::Install { user } => commands::install::run(user),
         cli::Cmd::Uninstall { user } => commands::install::uninstall(user),
