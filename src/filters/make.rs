@@ -48,11 +48,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     let stderr = strip_ansi(&String::from_utf8_lossy(&input.stderr));
     // make の出力は概念的に 1 つの流れなので、stdout の後ろに stderr を連結して扱う
     // （原文は combine_raw で別途バイト厳密に保存される）。
-    let combined = match (stdout.trim().is_empty(), stderr.trim().is_empty()) {
-        (false, false) => format!("{}\n{}", stdout.trim_end_matches('\n'), stderr),
-        (true, false) => stderr,
-        (_, true) => stdout,
-    };
+    let combined = crate::filters::common::combine_outputs(stdout, stderr);
 
     let orig_lines = combined.lines().count();
 
