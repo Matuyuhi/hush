@@ -123,7 +123,10 @@ mod tests {
         assert!(out.compact.contains("test tests::test_two ... FAILED"));
         assert!(out.compact.contains("failures:"));
         assert!(out.compact.contains("thread 'tests::test_two' panicked"));
-        assert!(out.compact.contains("test result: FAILED. 1 passed; 1 failed"));
+        assert!(
+            out.compact
+                .contains("test result: FAILED. 1 passed; 1 failed")
+        );
     }
 
     #[test]
