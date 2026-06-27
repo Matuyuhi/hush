@@ -78,3 +78,62 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         shown_lines,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compacts_successful_test_output() {
+        let stdout = include_str!("../../tests/fixtures/cargo-test/success.stdout");
+        let stderr = include_str!("../../tests/fixtures/cargo-test/success.stderr");
+        let input = FilterInput {
+            argv: vec!["cargo".into(), "test".into()],
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: stderr.as_bytes().to_vec(),
+        };
+        let out = run(&input).unwrap();
+
+        assert_eq!(out.filter_name, "cargo-test");
+        // Build noise and passed individual tests should be dropped
+        assert!(!out.compact.contains("Compiling"));
+        assert!(!out.compact.contains("Finished"));
+        assert!(!out.compact.contains("test tests::test_one ... ok"));
+        assert!(!out.compact.contains("test tests::test_two ... ok"));
+        assert!(!out.compact.contains("test tests::test_three ... ok"));
+
+        // Summary should remain
+        assert!(out.compact.contains("test result: ok. 3 passed; 0 failed"));
+    }
+
+    #[test]
+    fn keeps_failed_tests_and_panics() {
+        let stdout = include_str!("../../tests/fixtures/cargo-test/failure.stdout");
+        let input = FilterInput {
+            argv: vec!["cargo".into(), "test".into()],
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: Vec::new(),
+        };
+        let out = run(&input).unwrap();
+
+        // Passed test should be dropped
+        assert!(!out.compact.contains("test tests::test_one ... ok"));
+
+        // Failed test line and panic details should be kept
+        assert!(out.compact.contains("test tests::test_two ... FAILED"));
+        assert!(out.compact.contains("failures:"));
+        assert!(out.compact.contains("thread 'tests::test_two' panicked"));
+        assert!(out.compact.contains("test result: FAILED. 1 passed; 1 failed"));
+    }
+
+    #[test]
+    fn handles_empty_output() {
+        let input = FilterInput {
+            argv: vec!["cargo".into(), "test".into()],
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        };
+        let out = run(&input).unwrap();
+        assert_eq!(out.compact, "(no test output)");
+    }
+}

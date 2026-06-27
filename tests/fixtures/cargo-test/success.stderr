@@ -1,0 +1,3 @@
+   Compiling crate v0.1.0 (/path/to/crate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s
+     Running unittests src/lib.rs (target/debug/deps/crate-hash)
