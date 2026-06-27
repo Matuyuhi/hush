@@ -42,3 +42,92 @@ pub fn run_wrapped(argv: Vec<String>) -> Result<i32> {
     // 実コマンドの exit code をそのまま伝播。
     Ok(captured.exit_code)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::fs;
+    use std::sync::Mutex;
+
+    // Use a global mutex to prevent race conditions when manipulating the environment
+    // variables HUSH_ALLOW_NO_SANDBOX and XDG_DATA_HOME across concurrent unit tests.
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+    struct EnvGuard {
+        _lock: std::sync::MutexGuard<'static, ()>,
+        temp_dir: std::path::PathBuf,
+        old_sandbox: Option<std::ffi::OsString>,
+        old_xdg: Option<std::ffi::OsString>,
+    }
+
+    impl EnvGuard {
+        fn new() -> Self {
+            let lock = ENV_MUTEX.lock().unwrap();
+            let temp_dir = env::temp_dir().join(format!(
+                "hush_test_pipeline_{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .subsec_nanos()
+            ));
+            let _ = fs::remove_dir_all(&temp_dir);
+            fs::create_dir_all(&temp_dir).unwrap();
+
+            let old_sandbox = env::var_os("HUSH_ALLOW_NO_SANDBOX");
+            let old_xdg = env::var_os("XDG_DATA_HOME");
+
+            unsafe {
+                env::set_var("HUSH_ALLOW_NO_SANDBOX", "1");
+                env::set_var("XDG_DATA_HOME", &temp_dir);
+            }
+            Self { _lock: lock, temp_dir, old_sandbox, old_xdg }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            unsafe {
+                if let Some(ref val) = self.old_sandbox {
+                    env::set_var("HUSH_ALLOW_NO_SANDBOX", val);
+                } else {
+                    env::remove_var("HUSH_ALLOW_NO_SANDBOX");
+                }
+
+                if let Some(ref val) = self.old_xdg {
+                    env::set_var("XDG_DATA_HOME", val);
+                } else {
+                    env::remove_var("XDG_DATA_HOME");
+                }
+            }
+            let _ = fs::remove_dir_all(&self.temp_dir);
+        }
+    }
+
+    #[test]
+    fn test_run_wrapped_empty_argv() {
+        let argv: Vec<String> = vec![];
+        let result = run_wrapped(argv);
+        assert!(matches!(result, Err(Error::Msg(msg)) if msg == "no command given to wrap"));
+    }
+
+    #[test]
+    fn test_run_wrapped_valid_command() {
+        let _guard = EnvGuard::new();
+        // The output of this will go to stdout, but we are testing that it completes
+        // successfully without error, meaning the sandbox, filters, and store logic worked.
+        let argv = vec!["echo".to_string(), "hello".to_string()];
+        let result = run_wrapped(argv);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 0);
+    }
+
+    #[test]
+    fn test_run_wrapped_failing_command() {
+        let _guard = EnvGuard::new();
+        let argv = vec!["sh".to_string(), "-c".to_string(), "exit 42".to_string()];
+        let result = run_wrapped(argv);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+    }
+}
