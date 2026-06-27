@@ -26,15 +26,6 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     // 同形の行は内容行（`++ x` への追加 → `+++ x`、`-- x` の削除 → `--- x`）。
     let mut in_hunk = false;
 
-    let flush =
-        |files: &mut Vec<String>, cur: &mut Option<String>, add: &mut usize, del: &mut usize| {
-            if let Some(path) = cur.take() {
-                files.push(format!("{path}  (+{add} -{del})"));
-            }
-            *add = 0;
-            *del = 0;
-        };
-
     // ファイルヘッダ対は常に `--- ` → `+++ ` → `@@` の 3 行で現れる。これを内容行
     // （`-- x`/`++ x` に diff マーカーが付いた `--- x`/`+++ x`）と確実に区別するため、
     // 行を先読みして判定する。`diff ...` 区切り行があればそこでもファイルを確定する。
@@ -43,7 +34,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     while i < lines.len() {
         let line = lines[i];
         if line.starts_with("diff ") {
-            flush(&mut files, &mut cur, &mut add, &mut del);
+            super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
             in_hunk = false;
             i += 1;
         } else if line.starts_with("--- ")
@@ -51,7 +42,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
             && lines.get(i + 2).is_some_and(|n| n.starts_with("@@"))
         {
             // ファイルヘッダ対。前のファイルを確定し、新ファイル名は `+++ ` から取る。
-            flush(&mut files, &mut cur, &mut add, &mut del);
+            super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
             cur = Some(clean_path(&lines[i + 1][4..]));
             in_hunk = false;
             i += 2; // `--- ` と `+++ ` を消費（次の `@@` はループで処理）。
@@ -71,7 +62,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
             i += 1;
         }
     }
-    flush(&mut files, &mut cur, &mut add, &mut del);
+    super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
 
     // unified diff として解釈できなければ（`@@` ハンクもファイルも無ければ）
     // 汎用圧縮にフォールバック。normal / ed 形式の diff はここで弾かれる。

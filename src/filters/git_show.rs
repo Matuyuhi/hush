@@ -136,18 +136,9 @@ fn summarize_diff(diff_lines: &[&str]) -> (Vec<String>, usize, usize) {
     // （内容 `++ x`/`-- x` に diff マーカーが付いた形）は加減算としてカウントする。
     let mut in_hunk = false;
 
-    let flush =
-        |files: &mut Vec<String>, cur: &mut Option<String>, add: &mut usize, del: &mut usize| {
-            if let Some(path) = cur.take() {
-                files.push(format!("{path}  (+{add} -{del})"));
-            }
-            *add = 0;
-            *del = 0;
-        };
-
     for &line in diff_lines {
         if line.starts_with("diff --git") {
-            flush(&mut files, &mut cur, &mut add, &mut del);
+            super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
             in_hunk = false;
             // "diff --git a/foo b/foo" → "foo"
             let path = line
@@ -179,7 +170,7 @@ fn summarize_diff(diff_lines: &[&str]) -> (Vec<String>, usize, usize) {
             total_del += 1;
         }
     }
-    flush(&mut files, &mut cur, &mut add, &mut del);
+    super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
 
     (files, total_add, total_del)
 }
