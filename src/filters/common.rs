@@ -155,6 +155,20 @@ pub fn combine_raw(stdout: &[u8], stderr: &[u8]) -> Vec<u8> {
 
 /// ANSI エスケープシーケンス（色など）を除去する。色コードはトークンの純粋ノイズ。
 /// CSI (`ESC [ ... 終端 0x40-0x7E`) と OSC (`ESC ] ... BEL`/`ESC \`) を落とす。
+/// ファイル単位の増減サマリを `files` に畳むヘルパー（diff系フィルタ共通）。
+pub fn flush_diff_file(
+    files: &mut Vec<String>,
+    cur: &mut Option<String>,
+    add: &mut usize,
+    del: &mut usize,
+) {
+    if let Some(path) = cur.take() {
+        files.push(format!("{path}  (+{add} -{del})"));
+    }
+    *add = 0;
+    *del = 0;
+}
+
 pub fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
@@ -461,5 +475,20 @@ mod tests {
     fn combine_raw_both_without_newline() {
         let expected = b"hello stdout\n--- stderr ---\nhello stderr";
         assert_eq!(combine_raw(b"hello stdout", b"hello stderr"), expected);
+    }
+
+    #[test]
+    fn flush_diff_file_works() {
+        let mut files = Vec::new();
+        let mut cur = Some("src/main.rs".to_string());
+        let mut add = 5;
+        let mut del = 2;
+
+        flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
+
+        assert_eq!(files, vec!["src/main.rs  (+5 -2)".to_string()]);
+        assert_eq!(cur, None);
+        assert_eq!(add, 0);
+        assert_eq!(del, 0);
     }
 }
