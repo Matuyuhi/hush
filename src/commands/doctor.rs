@@ -82,7 +82,7 @@ mod unix_impl {
 
     /// 127.0.0.1:port の sockaddr_in を作る。
     fn loopback_addr(port: u16) -> libc::sockaddr_in {
-        let mut addr: libc::sockaddr_in = unsafe { std::mem::zeroed() };
+        let mut addr: libc::sockaddr_in = unsafe { std::mem::MaybeUninit::zeroed().assume_init() };
         addr.sin_family = libc::AF_INET as libc::sa_family_t;
         addr.sin_port = port.to_be();
         // 127.0.0.1 を network byte order で。from_ne_bytes はバイト列をそのまま
