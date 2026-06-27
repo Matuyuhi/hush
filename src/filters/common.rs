@@ -153,6 +153,16 @@ pub fn combine_raw(stdout: &[u8], stderr: &[u8]) -> Vec<u8> {
     v
 }
 
+/// stdoutとstderrのテキスト出力を結合する。片方が空ならもう片方をそのまま返す。
+/// 両方ある場合は改行を挟んで結合する。
+pub fn combine_outputs(stdout: String, stderr: String) -> String {
+    match (stdout.trim().is_empty(), stderr.trim().is_empty()) {
+        (false, false) => format!("{}\n{}", stdout.trim_end_matches('\n'), stderr),
+        (true, false) => stderr,
+        (_, true) => stdout,
+    }
+}
+
 /// ANSI エスケープシーケンス（色など）を除去する。色コードはトークンの純粋ノイズ。
 /// CSI (`ESC [ ... 終端 0x40-0x7E`) と OSC (`ESC ] ... BEL`/`ESC \`) を落とす。
 pub fn strip_ansi(s: &str) -> String {
