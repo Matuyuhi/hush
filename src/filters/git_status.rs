@@ -78,12 +78,21 @@ no changes added to commit (use \"git add\" and/or \"git commit -a\")
         assert_eq!(out.filter_name, "git-status");
 
         // Hints are removed
-        assert!(!out.compact.contains("use \"git add <file>...\" to update what will be committed"));
-        assert!(!out.compact.contains("use \"git restore <file>...\" to discard changes in working directory"));
+        assert!(
+            !out.compact
+                .contains("use \"git add <file>...\" to update what will be committed")
+        );
+        assert!(
+            !out.compact
+                .contains("use \"git restore <file>...\" to discard changes in working directory")
+        );
 
         // Branch info and files are kept
         assert!(out.compact.contains("On branch main"));
-        assert!(out.compact.contains("modified:   src/filters/git_status.rs"));
+        assert!(
+            out.compact
+                .contains("modified:   src/filters/git_status.rs")
+        );
         assert!(out.compact.contains("untracked.txt"));
 
         // Blank runs are collapsed
