@@ -81,7 +81,12 @@ mod tests {
                 env::set_var("HUSH_ALLOW_NO_SANDBOX", "1");
                 env::set_var("XDG_DATA_HOME", &temp_dir);
             }
-            Self { _lock: lock, temp_dir, old_sandbox, old_xdg }
+            Self {
+                _lock: lock,
+                temp_dir,
+                old_sandbox,
+                old_xdg,
+            }
         }
     }
 
