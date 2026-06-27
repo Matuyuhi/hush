@@ -75,3 +75,97 @@ pub fn run_plain(input: &FilterInput) -> Result<FilterOutput> {
         shown_lines,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy_input(stdout: &str, stderr: &str) -> FilterInput {
+        FilterInput {
+            argv: vec!["cat".to_string()],
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: stderr.as_bytes().to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_run_plain_basic() {
+        let input = dummy_input("hello\nworld", "");
+        let out = run_plain(&input).unwrap();
+        assert_eq!(out.compact, "hello\nworld");
+        assert_eq!(out.orig_lines, 2);
+        assert_eq!(out.shown_lines, 2);
+        assert!(out.original.is_none());
+        assert_eq!(out.filter_name, "passthrough");
+    }
+
+    #[test]
+    fn test_run_plain_empty() {
+        let input = dummy_input("", "");
+        let out = run_plain(&input).unwrap();
+        assert_eq!(out.compact, "(no output)");
+        assert_eq!(out.orig_lines, 0);
+        assert_eq!(out.shown_lines, 0);
+        assert!(out.original.is_none());
+    }
+
+    #[test]
+    fn test_run_plain_stderr_combination() {
+        // Output from both stdout and stderr, with ANSI escaping stripping.
+        let input = dummy_input("\x1b[31mhello\x1b[0m", "world");
+        let out = run_plain(&input).unwrap();
+        assert_eq!(out.compact, "hello\n[stderr]\nworld");
+        assert_eq!(out.orig_lines, 3); // hello, [stderr], world
+        assert_eq!(out.shown_lines, 3);
+    }
+
+    #[test]
+    fn test_run_plain_blank_collapse_and_dedup() {
+        let input = dummy_input("a\n\n\n\nb\n\nc\nb\na", "");
+        let out = run_plain(&input).unwrap();
+        // verify collapse_blank_runs and dedup_all take effect and length is reduced.
+        assert!(out.compact.contains('a'));
+        assert!(out.compact.contains('b'));
+        assert!(out.compact.contains('c'));
+        assert!(out.shown_lines < out.orig_lines);
+        assert!(out.original.is_some());
+    }
+
+    #[test]
+    fn test_run_plain_truncation() {
+        let mut stdout = String::new();
+        for i in 0..100 {
+            stdout.push_str(&format!("line {}\n", i));
+        }
+        let input = dummy_input(&stdout, "");
+        let out = run_plain(&input).unwrap();
+
+        assert_eq!(out.orig_lines, 100);
+        assert_eq!(out.shown_lines, super::HEAD + super::TAIL + 1); // lines + 1 for separator usually
+        assert!(out.compact.contains("line 0"));
+        assert!(out.compact.contains("line 99"));
+        assert!(out.original.is_some());
+    }
+
+    #[test]
+    fn test_run_chooses_json() {
+        // Very long array, JSON compactor handles arrays of length > 8
+        let mut json_arr = String::from("[");
+        for i in 0..100 {
+            json_arr.push_str(&format!("{},", i));
+        }
+        json_arr.push_str("100]");
+        let input = dummy_input(&json_arr, "");
+
+        let out = run(&input).unwrap();
+        // The JSON compactor should reduce the 100 element array
+        assert_eq!(out.filter_name, "json");
+    }
+
+    #[test]
+    fn test_run_falls_back_to_plain() {
+        let input = dummy_input("not json\nat all", "");
+        let out = run(&input).unwrap();
+        assert_eq!(out.filter_name, "passthrough");
+    }
+}
