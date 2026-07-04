@@ -113,11 +113,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     let stdout = strip_ansi(&String::from_utf8_lossy(&input.stdout));
     let stderr = strip_ansi(&String::from_utf8_lossy(&input.stderr));
     // npm/pnpm/yarn は進捗を stderr に流すことが多い。両方を 1 本のテキストに結合して扱う。
-    let text = match (stdout.trim().is_empty(), stderr.trim().is_empty()) {
-        (true, _) => stderr,
-        (_, true) => stdout,
-        _ => format!("{stdout}\n{stderr}"),
-    };
+    let text = crate::filters::common::combine_outputs(stdout, stderr);
 
     // install ログと認識できなければ汎用圧縮へ。
     if !looks_like_install(&text) {
