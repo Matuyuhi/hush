@@ -198,7 +198,7 @@ fn format_filters(stats: &Stats) -> Vec<String> {
     // --- by-filter block: (name, count, original, compressed, percent) ---
     let mut rows: Vec<(&String, &FilterStats)> = stats.by_filter.iter().collect();
     rows.sort_by_key(|(_, fs)| std::cmp::Reverse(fs.orig_b.saturating_sub(fs.comp_b)));
-    let frows: Vec<(String, String, String, String, String)> = rows
+    let frows: Vec<(&str, String, String, String, String)> = rows
         .iter()
         .map(|(f, fs)| {
             let r = if fs.orig_b > 0 {
@@ -207,7 +207,7 @@ fn format_filters(stats: &Stats) -> Vec<String> {
                 0.0
             };
             (
-                (*f).clone(),
+                f.as_str(),
                 format!("{}x", fs.count),
                 human_bytes(fs.orig_b),
                 human_bytes(fs.comp_b),
