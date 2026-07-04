@@ -72,3 +72,73 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         shown_lines,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn input(stdout: &str) -> FilterInput {
+        FilterInput {
+            argv: vec!["grep".to_string()],
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: b"".to_vec(),
+        }
+    }
+
+    #[test]
+    fn test_empty() {
+        let out = run(&input("")).unwrap();
+        assert_eq!(out.filter_name, "grep");
+        assert_eq!(out.compact, "(no matches)");
+        assert_eq!(out.orig_lines, 0);
+        assert_eq!(out.shown_lines, 0);
+    }
+
+    #[test]
+    fn test_few_matches() {
+        let diff = "file1:match1\nfile2:match2\n";
+        let out = run(&input(diff)).unwrap();
+        assert_eq!(out.filter_name, "grep");
+        assert_eq!(out.compact, "file1:match1\nfile2:match2");
+        assert_eq!(out.orig_lines, 2);
+        assert_eq!(out.shown_lines, 2);
+    }
+
+    #[test]
+    fn test_many_matches_grouped() {
+        let mut lines = Vec::new();
+        for i in 0..15 {
+            lines.push(format!("fileA:match{}", i));
+        }
+        for i in 0..10 {
+            lines.push(format!("fileB:match{}", i));
+        }
+        let diff = lines.join("\n") + "\n";
+
+        let out = run(&input(&diff)).unwrap();
+        assert_eq!(out.filter_name, "grep");
+        assert_eq!(out.orig_lines, 25);
+
+        // Output format:
+        // 25 matches in 2 files:
+        // fileA: 15
+        // fileB: 10
+        assert!(out.compact.starts_with("25 matches in 2 files:"));
+        assert!(out.compact.contains("fileA: 15"));
+        assert!(out.compact.contains("fileB: 10"));
+        assert!(out.original.is_some());
+    }
+
+    #[test]
+    fn test_many_matches_no_filename() {
+        let mut lines = Vec::new();
+        for i in 0..25 {
+            lines.push(format!("just some match without filename {}", i));
+        }
+        let diff = lines.join("\n") + "\n";
+
+        let out = run(&input(&diff)).unwrap();
+        // Since no ':', falls back to passthrough
+        assert_eq!(out.filter_name, "passthrough");
+    }
+}
