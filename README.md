@@ -141,15 +141,17 @@ hush doctor                     # prove the non-transmission sandbox works
 Any command works — unknown ones use a generic compactor (blank/duplicate collapse,
 head + expand). The wrapped command's exit code is propagated unchanged.
 
-### Claude Code integration
+### Claude Code / Codex integration
 
 ```sh
-hush install                    # project scope (.claude/); --user for ~/.claude/
+hush install                    # project scope (.claude/ + .codex/)
+hush install --user             # user scope (~/.claude/ + ~/.codex/)
 ```
 
-This adds a `PostToolUse` hook that compresses Bash output before the model sees it,
-drops a short `HUSH.md` usage guide, and references it from `CLAUDE.md`. Remove it with
-`hush uninstall`.
+This adds hooks that compress output before the model sees it. Claude Code uses a
+`PostToolUse` hook for Bash and large `Read` output; Codex uses a `PreToolUse` hook that
+auto-wraps shell commands with `hush`. A short `HUSH.md` usage guide is referenced from
+`CLAUDE.md`. Remove the hooks with `hush uninstall`.
 
 ## How it works
 

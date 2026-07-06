@@ -52,21 +52,21 @@ pub enum Cmd {
     /// Show how much output has been compressed so far
     Stats,
 
-    /// Integrate with Claude Code (PostToolUse hook + HUSH.md + CLAUDE.md import)
+    /// Integrate with Claude Code and Codex hooks
     Install {
-        /// Install into the user scope (~/.claude/) instead of the project (.claude/)
+        /// Install into the user scope (~/.claude/ and ~/.codex/) instead of the project
         #[arg(long)]
         user: bool,
     },
 
     /// Remove what `hush install` set up
     Uninstall {
-        /// Target the user scope (~/.claude/)
+        /// Target the user scope (~/.claude/ and ~/.codex/)
         #[arg(long)]
         user: bool,
     },
 
-    /// PostToolUse hook entry point (internal; reads hook JSON from stdin)
+    /// Hook entry point (internal; reads hook JSON from stdin)
     #[command(hide = true)]
     Hook,
 

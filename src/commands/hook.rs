@@ -1,8 +1,8 @@
-//! `hush hook` — Claude Code の PostToolUse hook 本体（内部用）。
+//! `hush hook` — Claude Code / Codex hook 本体（内部用）。
 //!
 //! Claude Code はツール実行後、stdin に PostToolUse の JSON を渡してこれを呼ぶ。
-//! hush は出力を圧縮し、`hookSpecificOutput.updatedToolOutput` でモデルに渡る
-//! 出力を差し替える。原文は expand ストアに保存され `hush expand <id>` で復元できる。
+//! Codex はツール実行前、PreToolUse で shell command を `hush ...` に書き換える。
+//! 原文は expand ストアに保存され `hush expand <id>` で復元できる。
 //!
 //! 対応ツール（`ToolKind`）:
 //! - **Bash**: `tool_response`(`{stdout,stderr,interrupted,isImage}`) を per-command フィルタで圧縮。
@@ -12,6 +12,8 @@
 //! - 差し替え値 `updatedToolOutput` は **そのツールの出力形に一致** していないと
 //!   Claude Code 側で無視され原文が使われる。よって Bash は `{stdout,...}` 形、Read は
 //!   元の `tool_response` を複製して本文フィールドだけ差し替える（未知フィールドを保つ）。
+//! - Codex は PostToolUse で `updatedToolOutput` を受け付けないため、PreToolUse の
+//!   `updatedInput` でコマンド自体を `hush` 経由にする。
 //!
 //! 大原則: **ユーザのツールフローを絶対に壊さない**。パース失敗・非対象・ゲート失敗・
 //! フィルタ失敗など、少しでも怪しければ何も出力せず終了し（no-op）、元の出力をそのまま通す。
@@ -76,8 +78,68 @@ fn extract_streams(tr: &Value) -> Option<(String, String)> {
     }
 }
 
-/// PostToolUse の JSON から処理対象を取り出す。対象外なら None（=no-op）。
-fn parse_inputs(v: &Value) -> Option<HookInputs> {
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+fn has_shell_metachar(command: &str) -> bool {
+    command.contains(['|', '&', ';', '>', '<', '`', '\n']) || command.contains("$(")
+}
+
+fn is_already_hush(command: &str) -> bool {
+    let t = command.trim_start();
+    t == "hush"
+        || t.starts_with("hush ")
+        || t.ends_with("/hush")
+        || t.contains("/hush ")
+        || t.contains("/hush' ")
+        || t.contains("/hush\" ")
+}
+
+fn rewrite_command_for_hush(command: &str, hush_exe: &str) -> Option<String> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() || is_already_hush(trimmed) {
+        return None;
+    }
+    let hush = shell_quote(hush_exe);
+    if has_shell_metachar(trimmed) {
+        Some(format!("{hush} /bin/zsh -lc {}", shell_quote(trimmed)))
+    } else {
+        Some(format!("{hush} {trimmed}"))
+    }
+}
+
+fn build_codex_pretool_payload(original_input: &Value, rewritten: &str) -> Value {
+    let mut updated = original_input.clone();
+    if let Some(obj) = updated.as_object_mut() {
+        obj.insert("command".to_string(), json!(rewritten));
+    }
+    json!({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "hush auto-wrap",
+            "updatedInput": updated,
+        }
+    })
+}
+
+fn run_codex_pretool(v: &Value) -> Option<Value> {
+    if v.get("hook_event_name").and_then(Value::as_str) != Some("PreToolUse")
+        || v.get("turn_id").is_none()
+    {
+        return None;
+    }
+    let tool_input = v.get("tool_input")?;
+    let command = tool_input.get("command").and_then(Value::as_str)?;
+    let exe = std::env::current_exe().ok()?;
+    let exe = exe.to_string_lossy();
+    let rewritten = rewrite_command_for_hush(command, &exe)?;
+    Some(build_codex_pretool_payload(tool_input, &rewritten))
+}
+
+/// Claude Code PostToolUse の JSON から処理対象を取り出す。対象外なら None（=no-op）。
+fn parse_posttool_inputs(v: &Value) -> Option<HookInputs> {
     if v.get("hook_event_name").and_then(Value::as_str) != Some("PostToolUse") {
         return None;
     }
@@ -173,9 +235,8 @@ fn parse_read(v: &Value, cwd: Option<String>) -> Option<HookInputs> {
     })
 }
 
-/// ツールの出力形に一致した差し替えペイロードを組む（形が違うと CC に無視されるため）。
-/// 唯一の「形決定点」。
-fn build_payload(h: &HookInputs, compact: &str) -> Value {
+/// Claude Code 向けに、ツールの出力形に一致した差し替えペイロードを組む。
+fn build_claude_payload(h: &HookInputs, compact: &str) -> Value {
     let updated = match h.kind {
         // Bash の native 形。圧縮後テキストは stdout にまとめ、stderr は空にする。
         ToolKind::Bash => json!({
@@ -204,6 +265,10 @@ fn build_payload(h: &HookInputs, compact: &str) -> Value {
     })
 }
 
+fn build_payload(h: &HookInputs, compact: &str) -> Value {
+    build_claude_payload(h, compact)
+}
+
 pub fn run() -> Result<i32> {
     // 何があっても Ok(0) で抜ける（no-op = 元の出力を通す）。
     let mut buf = String::new();
@@ -213,7 +278,13 @@ pub fn run() -> Result<i32> {
     let Ok(v) = serde_json::from_str::<Value>(&buf) else {
         return Ok(0);
     };
-    let Some(h) = parse_inputs(&v) else {
+    if let Some(payload) = run_codex_pretool(&v) {
+        if let Ok(json) = serde_json::to_string(&payload) {
+            println!("{json}");
+        }
+        return Ok(0);
+    }
+    let Some(h) = parse_posttool_inputs(&v) else {
         return Ok(0);
     };
 
@@ -314,7 +385,7 @@ mod tests {
             "tool_response": {"stdout": "a\nb", "stderr": "", "interrupted": false, "isImage": false},
             "cwd": "/x"
         });
-        let h = parse_inputs(&v).expect("should parse");
+        let h = parse_posttool_inputs(&v).expect("should parse");
         assert_eq!(h.kind, ToolKind::Bash);
         assert_eq!(h.command, "ls");
         assert_eq!(h.stdout, "a\nb");
@@ -329,8 +400,46 @@ mod tests {
             "tool_input": {"command": "ls"},
             "tool_output": "legacy string"
         });
-        let h = parse_inputs(&v).expect("should parse legacy");
+        let h = parse_posttool_inputs(&v).expect("should parse legacy");
         assert_eq!(h.stdout, "legacy string");
+    }
+
+    #[test]
+    fn rewrites_codex_pretool_shell_command() {
+        let v = json!({
+            "hook_event_name": "PreToolUse",
+            "tool_name": "exec_command",
+            "tool_input": {"command": "git status"},
+            "cwd": "/repo",
+            "turn_id": "turn-1"
+        });
+        let p = run_codex_pretool(&v).expect("should rewrite Codex shell");
+        let h = &p["hookSpecificOutput"];
+        assert_eq!(h["hookEventName"], "PreToolUse");
+        assert_eq!(h["permissionDecision"], "allow");
+        let rewritten = h["updatedInput"]["command"].as_str().unwrap();
+        assert!(rewritten.ends_with(" git status"));
+        assert!(rewritten.contains("/hush"));
+    }
+
+    #[test]
+    fn rewrites_complex_codex_command_through_shell() {
+        assert_eq!(
+            rewrite_command_for_hush("git status | head -20", "/opt/homebrew/bin/hush").unwrap(),
+            "'/opt/homebrew/bin/hush' /bin/zsh -lc 'git status | head -20'"
+        );
+    }
+
+    #[test]
+    fn skips_already_wrapped_codex_command() {
+        let v = json!({
+            "hook_event_name": "PreToolUse",
+            "tool_name": "exec_command",
+            "tool_input": {"command": "hush git status"},
+            "cwd": "/repo",
+            "turn_id": "turn-1"
+        });
+        assert!(run_codex_pretool(&v).is_none());
     }
 
     #[test]
@@ -348,18 +457,20 @@ mod tests {
             v
         };
         // 非 PostToolUse
-        assert!(parse_inputs(&base(json!({"hook_event_name": "PreToolUse"}))).is_none());
+        assert!(parse_posttool_inputs(&base(json!({"hook_event_name": "PreToolUse"}))).is_none());
         // 未対応ツール
-        assert!(parse_inputs(&base(json!({"tool_name": "Write"}))).is_none());
+        assert!(parse_posttool_inputs(&base(json!({"tool_name": "Write"}))).is_none());
         // 画像
         assert!(
-            parse_inputs(&base(
+            parse_posttool_inputs(&base(
                 json!({"tool_response": {"stdout": "x", "isImage": true}})
             ))
             .is_none()
         );
         // 空出力
-        assert!(parse_inputs(&base(json!({"tool_response": {"stdout": "   "}}))).is_none());
+        assert!(
+            parse_posttool_inputs(&base(json!({"tool_response": {"stdout": "   "}}))).is_none()
+        );
     }
 
     /// Read の実ペイロード形（CC 実測）に合わせたテスト用 JSON を組む。
@@ -389,7 +500,8 @@ mod tests {
 
     #[test]
     fn parse_read_extracts_file_content() {
-        let h = parse_inputs(&read_event("alpha\nbeta", 2, false)).expect("should parse Read");
+        let h =
+            parse_posttool_inputs(&read_event("alpha\nbeta", 2, false)).expect("should parse Read");
         assert_eq!(h.kind, ToolKind::Read);
         assert_eq!(h.stdout, "alpha\nbeta");
         assert_eq!(h.file_path, "/proj/src/main.rs");
@@ -400,7 +512,7 @@ mod tests {
     #[test]
     fn parse_read_skips_windowed_read() {
         // offset/limit 付き（狙った窓読み）は触らない。
-        assert!(parse_inputs(&read_event("x\ny", 2, true)).is_none());
+        assert!(parse_posttool_inputs(&read_event("x\ny", 2, true)).is_none());
     }
 
     #[test]
@@ -408,9 +520,9 @@ mod tests {
         // type != "text"（画像等）。
         let mut img = read_event("x", 1, false);
         img["tool_response"]["type"] = json!("image");
-        assert!(parse_inputs(&img).is_none());
+        assert!(parse_posttool_inputs(&img).is_none());
         // 空本文。
-        assert!(parse_inputs(&read_event("   ", 1, false)).is_none());
+        assert!(parse_posttool_inputs(&read_event("   ", 1, false)).is_none());
     }
 
     #[test]
@@ -436,7 +548,7 @@ mod tests {
 
     #[test]
     fn payload_patches_read_content_and_preserves_shape() {
-        let h = parse_inputs(&read_event("orig body", 500, false)).expect("Read");
+        let h = parse_posttool_inputs(&read_event("orig body", 500, false)).expect("Read");
         let p = build_payload(&h, "trunc\nbody\n[hush:read id=abc ...]");
         let u = &p["hookSpecificOutput"]["updatedToolOutput"];
         // 本文だけ差し替わり、Read の native 形（type/file）は保たれる。
