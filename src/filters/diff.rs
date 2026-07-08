@@ -112,13 +112,10 @@ fn clean_path(rest: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::input as test_input;
 
     fn input(stdout: &str) -> FilterInput {
-        FilterInput {
-            argv: vec!["diff".into(), "-u".into()],
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: Vec::new(),
-        }
+        test_input(&["diff", "-u"], stdout)
     }
 
     #[test]
