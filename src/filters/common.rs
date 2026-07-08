@@ -473,3 +473,52 @@ mod tests {
         assert_eq!(combine_raw(b"hello stdout", b"hello stderr"), expected);
     }
 }
+
+use crate::filters::{FilterInput, FilterOutput, passthrough};
+use crate::error::Result;
+
+/// diff / git diff 共通のサマリ生成と passthrough フォールバック。
+pub fn format_diff_summary(
+    input: &FilterInput,
+    filter_name: &'static str,
+    orig_lines: usize,
+    files: Vec<String>,
+    total_add: usize,
+    total_del: usize,
+    is_valid_diff: bool,
+) -> Result<FilterOutput> {
+    if files.is_empty() || !is_valid_diff {
+        return passthrough::run(input);
+    }
+
+    let header = format!("{} files changed (+{total_add} -{total_del}):", files.len());
+    let mut out = Vec::with_capacity(files.len() + 1);
+    out.push(header);
+    out.extend(files);
+
+    let shown_lines = out.len();
+    let compact = out.join("\n");
+    let original = Some(combine_raw(&input.stdout, &input.stderr));
+
+    Ok(FilterOutput {
+        filter_name,
+        compact,
+        original,
+        orig_lines,
+        shown_lines,
+    })
+}
+
+#[cfg(test)]
+pub fn test_falls_back_on_non_diff(
+    run: fn(&FilterInput) -> Result<FilterOutput>,
+    argv: Vec<String>,
+) {
+    let input = FilterInput {
+        argv,
+        stdout: b"just some random text\nnot a diff at all\n".to_vec(),
+        stderr: Vec::new(),
+    };
+    let out = run(&input).unwrap();
+    assert_eq!(out.filter_name, "passthrough");
+}

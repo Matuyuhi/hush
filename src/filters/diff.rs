@@ -6,8 +6,8 @@
 //! `diff --git` ヘッダを持たない点が違う。`@@` ハンクの無い normal / ed 形式
 //! （`<` / `>` / `Nc N`）は unified diff ではないので passthrough にフォールバックする。
 
-use super::common::combine_raw;
-use super::{FilterInput, FilterOutput, passthrough};
+use super::common::format_diff_summary;
+use super::{FilterInput, FilterOutput};
 use crate::error::Result;
 
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
@@ -75,26 +75,15 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 
     // unified diff として解釈できなければ（`@@` ハンクもファイルも無ければ）
     // 汎用圧縮にフォールバック。normal / ed 形式の diff はここで弾かれる。
-    if files.is_empty() || !saw_hunk {
-        return passthrough::run(input);
-    }
-
-    let header = format!("{} files changed (+{total_add} -{total_del}):", files.len());
-    let mut out = Vec::with_capacity(files.len() + 1);
-    out.push(header);
-    out.extend(files);
-
-    let shown_lines = out.len();
-    let compact = out.join("\n");
-    let original = Some(combine_raw(&input.stdout, &input.stderr));
-
-    Ok(FilterOutput {
-        filter_name: "diff",
-        compact,
-        original,
+    format_diff_summary(
+        input,
+        "diff",
         orig_lines,
-        shown_lines,
-    })
+        files,
+        total_add,
+        total_del,
+        saw_hunk,
+    )
 }
 
 /// `+++ b/path\t2024-01-01 ...` のようなマーカー本文からパスを取り出す。
@@ -205,7 +194,9 @@ mod tests {
 
     #[test]
     fn falls_back_on_non_diff() {
-        let out = run(&input("just some random text\nnot a diff at all\n")).unwrap();
-        assert_eq!(out.filter_name, "passthrough");
+        super::super::common::test_falls_back_on_non_diff(
+            run,
+            vec!["diff".into(), "-u".into()],
+        );
     }
 }
