@@ -284,7 +284,7 @@ pub fn run() -> Result<i32> {
         }
         return Ok(0);
     }
-    let Some(h) = parse_posttool_inputs(&v) else {
+    let Some(mut h) = parse_posttool_inputs(&v) else {
         return Ok(0);
     };
 
@@ -305,8 +305,8 @@ pub fn run() -> Result<i32> {
             let argv: Vec<String> = h.command.split_whitespace().map(str::to_string).collect();
             let finput = FilterInput {
                 argv: argv.clone(),
-                stdout: h.stdout.clone().into_bytes(),
-                stderr: h.stderr.clone().into_bytes(),
+                stdout: std::mem::take(&mut h.stdout).into_bytes(),
+                stderr: std::mem::take(&mut h.stderr).into_bytes(),
             };
             // パイプ/複合コマンドは構造化フィルタが誤適用しうるので汎用圧縮に倒す。
             let piped =
