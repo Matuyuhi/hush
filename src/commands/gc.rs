@@ -70,16 +70,27 @@ fn classify(read: fs::ReadDir, days: Option<u64>, now: SystemTime) -> Result<Sca
 }
 
 /// 古いアーティファクト（原文＋メタ）を削除し、削除件数を返す。
-fn remove_old(dir: &Path, old: &[OldArtifact]) -> u64 {
+fn remove_old(dir: &Path, old: &[OldArtifact]) -> Result<u64> {
     let mut removed = 0u64;
     for a in old {
         let obj = dir.join(&a.id);
         let meta_path = dir.join(format!("{}.json", a.id));
-        let _ = fs::remove_file(&obj);
-        let _ = fs::remove_file(&meta_path);
+
+        match fs::remove_file(&obj) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+
+        match fs::remove_file(&meta_path) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+
         removed += 1;
     }
-    removed
+    Ok(removed)
 }
 
 pub fn run(days: Option<u64>, dry_run: bool) -> Result<i32> {
@@ -141,7 +152,7 @@ pub fn run(days: Option<u64>, dry_run: bool) -> Result<i32> {
             }
         }
         Some(d) => {
-            let removed = remove_old(dir, &scan.old);
+            let removed = remove_old(dir, &scan.old)?;
             rows.push(Row::Line(format!(
                 "  removed {removed} artifact(s) older than {d} day(s)"
             )));
@@ -220,7 +231,7 @@ mod tests {
             age_days: 100,
         }];
 
-        let removed = remove_old(dir.path(), &old);
+        let removed = remove_old(dir.path(), &old).unwrap();
         assert_eq!(removed, 1);
         assert!(!dir.path().join("aaaaaaaaaaaa").exists());
         assert!(!dir.path().join("aaaaaaaaaaaa.json").exists());
