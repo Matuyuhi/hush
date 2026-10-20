@@ -1,16 +1,14 @@
 # hush
 
-**Compress dev-command output to cut LLM token usage — and physically never transmit it.**
+Trim the noise out of dev-command output for LLM coding agents, and never transmit it.
 
-`hush` wraps a command, runs it, and prints a compacted version of its output so an
-LLM coding agent burns far fewer tokens reading it. When compaction elides anything,
-the full original is stored locally and recovered on demand with `hush expand <id>`.
-If nothing is elided, `hush` prints the full output and does not create an expand id.
+`hush` runs a command and prints a compact version of its output: build and test logs
+shrink to failures and totals, progress redraws and color codes disappear. Whatever it
+changes is stored locally and comes back byte for byte with `hush expand <id>`.
 
-The headline property is **non-transmission**. Before `hush` filters or renders any output, it
-closes an irreversible, kernel-enforced network gate on its own process (macOS
-`sandbox_init`, Linux `seccomp`). The compression/filtering code therefore *cannot* send your
-code or command output anywhere — and you can prove it: `hush doctor`.
+The process that does this cannot reach the network. Before it reads any output, hush
+closes an irreversible, kernel-enforced network gate on itself (macOS `sandbox_init`,
+Linux `seccomp`). `hush doctor` proves it on your machine.
 
 ```
 $ hush git diff
@@ -23,7 +21,8 @@ Cargo.lock  (+480 -0)
 
 ## Table of Contents
 
-- [Why](#why)
+- [Principles](#principles)
+- [Two ways to use it](#two-ways-to-use-it)
 - [Compression](#compression)
 - [Install](#install)
 - [Usage](#usage)
@@ -33,32 +32,61 @@ Cargo.lock  (+480 -0)
 - [Development](#development)
 - [License](#license)
 
-## Why
+## Principles
 
-- **Non-transmission by construction** — a one-way gate is applied *before* any
-  filtering runs, so the hot path has no way to reach the network. No telemetry, no
-  external URLs, ever.
-- **Fold, don't drop** — compaction is reversible. Every elided output is content-
-  addressed and stored under `~/.local/share/hush/`; `hush expand <id>` returns the
-  exact bytes, so the model never has to re-run a command for missing context.
-- **Per-command filters** — a tailored compaction for each family: version control
-  (`git status/diff/log/show`, `diff`), builds and linters (`cargo build/test`,
-  `go build/vet/test`, `tsc`, `eslint`, `make`), test runners (`jest`/`vitest`/`mocha`/
-  `pytest`/…), package installs (`npm`/`pnpm`/`yarn`/`bun`/`pip install`), tables
-  (`docker ps`, `kubectl get`, `ps`, `df`, `pip list`, `lsblk`, `free`, …), the
-  filesystem (`ls`, `find`, `du`, `tree`), `grep`, Python tracebacks, and `read`
-  (tree-sitter signatures). Anything else falls back to a generic compactor.
-- **Content-aware JSON** — any command that emits JSON or NDJSON is detected by an
-  output flag (`-o json`, `--format json`, `--message-format=json`, `--json`, …) or by
-  sniffing the bytes, then large arrays are summarized, long strings clipped, and
-  whitespace folded — so `kubectl -o json`, `gh … --json`, `cargo --message-format=json`,
-  `cat foo.json`, and friends all compact without per-command wiring.
+The model decides what to read. Current coding agents already narrow output themselves:
+they pipe into `head`, `grep`, or `jq`, read line ranges with `sed -n`, and ask for
+`git diff --stat` when a stat is enough. hush does not second-guess that. It never cuts
+output the model shaped, and it never cuts content the model asked to read.
+
+What hush removes is noise no reader wants: ANSI color codes, `\r` progress-bar redraws,
+long runs of the same line, and the hundreds of passing-test and `Compiling foo` lines
+around the one failure that matters.
+
+Fold, don't drop. Every change is reversible. The original is content-addressed under
+`~/.local/share/hush/`, and `hush expand <id>` returns the exact bytes, so the model never
+re-runs a command to recover context.
+
+Nothing leaves the machine. Filtering, storing, and expanding all happen behind the
+network gate. hush has no telemetry and no external URLs.
+
+## Two ways to use it
+
+Wrap a command when you want a summary. `hush <command>` picks a filter for the command
+and folds aggressively, because you asked for it:
+
+- version control: `git status/diff/log/show`, `diff`
+- builds and linters: `cargo build/clippy/check`, `go build/vet`, `tsc`, `eslint`, `make`,
+  `docker build`
+- test runners: `cargo test`, `go test`, `pytest`, `jest`, `vitest`, `mocha`, ...
+- package installs: `npm`/`pnpm`/`yarn`/`bun install`, `pip install`
+- tables: `docker ps`, `kubectl get`, `ps`, `df`, `pip list`, `lsblk`, `free`, `ss`
+- the filesystem and search: `ls`, `find`, `du`, `tree`, `grep`
+- JSON: any output requested with `-o json`, `--format json`, `--json`, ... or that sniffs
+  as JSON/NDJSON gets large arrays summarized and long strings clipped
+- `hush read <file> --signatures`: just the signatures, via tree-sitter
+- anything else: blank and duplicate lines collapsed, head and tail kept
+
+Install the Claude Code hook when you want noise removed from every Bash result without
+thinking about it. The hook is deliberately conservative:
+
+| Bash command the model ran | What the hook does |
+|---|---|
+| `hush ...`, anything piped into `head`/`tail`/`grep`/`jq`/..., `cat`/`sed`/`git`/`gh` | nothing |
+| a plain build, test, or install (`cargo test`, `cd app && npm install`, ...) | summarize with the command's filter |
+| anything else | strip ANSI codes, resolve `\r` redraws, fold runs of 3+ identical lines |
+
+The hook replaces a result only when the compacted body is at least 256 bytes smaller than
+the original (before the roughly 110-byte expand footer is added).
+Claude Code already spills very large output to a file and shows a preview of its head;
+for build logs the failure is at the tail, which is why those get a real summary.
 
 ## Compression
 
-Measured compaction ratio per command over fixed sample inputs (`tests/fixtures/`);
-bytes are raw stdout+stderr vs the compacted body (the `expand` footer is excluded).
-Regenerated from the fixtures and refreshed automatically by CI after each merge to `main`.
+Measured compaction ratio per command for the wrap path (`hush <command>`) over fixed
+sample inputs (`tests/fixtures/`); bytes are raw stdout+stderr vs the compacted body (the
+`expand` footer is excluded). Regenerated from the fixtures and refreshed automatically by
+CI after each merge to `main`. The hook path is narrower by design and is not measured here.
 
 <!-- compression-report:start -->
 ```
@@ -125,12 +153,11 @@ cargo install --path .
 ## Usage
 
 ```sh
-hush git status                 # compact branch + changed files
+hush cargo test                 # failures and totals
 hush git diff                   # per-file +N/-M summary (hunks via expand)
 hush git log                    # one line per commit
 hush grep -rn TODO src/         # hits grouped per file
 hush find . -name '*.rs'        # paths grouped by directory
-hush cat path/to/file           # generic compaction
 hush read src/main.rs --signatures   # AST signatures only (tree-sitter)
 
 hush expand <id>                # print the full original output
@@ -138,20 +165,25 @@ hush stats                      # how much has been compressed so far
 hush doctor                     # prove the non-transmission sandbox works
 ```
 
-Any command works — unknown ones use a generic compactor (blank/duplicate collapse,
-head + expand). The wrapped command's exit code is propagated unchanged.
+Any command works; the wrapped command's exit code is propagated unchanged. When nothing
+is changed, hush prints the output as is and creates no expand id.
 
-### Claude Code / Codex integration
+### Claude Code integration
 
 ```sh
-hush install                    # project scope (.claude/ + .codex/)
-hush install --user             # user scope (~/.claude/ + ~/.codex/)
+hush install                    # project scope (.claude/)
+hush install --user             # user scope (~/.claude/)
+hush uninstall [--user]         # remove it again
 ```
 
-This adds hooks that compress output before the model sees it. Claude Code uses a
-`PostToolUse` hook for Bash and large `Read` output; Codex uses a `PreToolUse` hook that
-auto-wraps shell commands with `hush`. A short `HUSH.md` usage guide is referenced from
-`CLAUDE.md`. Remove the hooks with `hush uninstall`.
+This adds a `PostToolUse` hook on Bash (see the table under
+[Two ways to use it](#two-ways-to-use-it)) and a short `HUSH.md` guide imported from
+`CLAUDE.md`. Any problem inside the hook (unparsable input, the gate failing, a filter
+error) makes it a no-op, so your Bash results are never broken.
+
+Codex is not supported. Codex hooks cannot replace a tool's output after it runs, and the
+only way to wrap a command beforehand also auto-approves it, skipping Codex's approval
+prompt. `hush install` and `hush uninstall` remove the Codex hook that hush 0.4.0 installed.
 
 ## How it works
 
@@ -160,23 +192,27 @@ hush <command>:
   1. run the command, capture stdout/stderr/exit code   (network is fine here)
   2. sandbox::gate()   <-- irreversible: this process can no longer transmit
   3. filter -> store the original -> print the compact form + an expand footer
+
+hush hook (Claude Code PostToolUse):
+  1. read the finished Bash result from stdin
+  2. sandbox::gate()
+  3. route (skip / summarize / denoise) -> store -> return the replacement
 ```
 
-- **The gate** denies all outbound network for the process. macOS uses an
-  `sandbox_init` SBPL profile (`deny network*`); Linux uses a `seccomp` filter that
-  refuses `socket(AF_INET/AF_INET6/AF_PACKET)`. If the gate can't be established, hush
-  fails closed (override only with `HUSH_ALLOW_NO_SANDBOX=1`).
-- **`hush doctor`** probes the network before and after the gate and shows that
-  outbound connections are open beforehand and blocked afterward — so the gate itself
-  is what stops transmission.
-- **The store** is content-addressed; identical outputs dedupe, and `expand` is byte-
-  exact. `hush gc [--days N]` prunes it.
+- The gate denies all outbound network for the process. macOS uses an `sandbox_init`
+  SBPL profile (`deny network*`); Linux uses a `seccomp` filter that refuses
+  `socket(AF_INET/AF_INET6/AF_PACKET)`. If the gate can't be established, hush fails
+  closed (override only with `HUSH_ALLOW_NO_SANDBOX=1`).
+- `hush doctor` probes the network before and after the gate and shows that outbound
+  connections are open beforehand and blocked afterward, so the gate itself is what stops
+  transmission.
+- The store is content-addressed; identical outputs dedupe, and `expand` is byte-exact.
+  `hush gc [--days N]` prunes it.
 
 ## Platform support
 
-macOS and Linux (both verified in CI, including `hush doctor` on each). Other
-platforms build but fail closed — the gate can't be guaranteed, so hush refuses to run
-the filter.
+macOS and Linux (both verified in CI, including `hush doctor` on each). Other platforms
+build but fail closed: the gate can't be guaranteed, so hush refuses to run the filter.
 
 ## Development
 
@@ -188,13 +224,13 @@ cargo build --no-default-features   # core only; drops tree-sitter (the `ast` fe
 cargo run -- doctor
 ```
 
-A compression benchmark runs the filters over fixed sample inputs in
-`tests/fixtures/` (`cargo test --test compression`): it fails if any command's
-compaction ratio drops below a per-command floor, and writes a markdown report of
-the ratio per command. CI publishes that report to the job summary on every push
-to `main`, and posts it as a PR comment when the `compression-report` label is added.
+A compression benchmark runs the filters over fixed sample inputs in `tests/fixtures/`
+(`cargo test --test compression`): it fails if any command's compaction ratio drops below
+a per-command floor, and writes a markdown report of the ratio per command. CI publishes
+that report to the job summary on every push to `main`, and posts it as a PR comment when
+the `compression-report` label is added.
 
-Releases are cut from `Cargo.toml`'s version: run the **Bump version** GitHub Action
+Releases are cut from `Cargo.toml`'s version: run the Bump version GitHub Action
 (patch/minor/major), merge the PR it opens, and `release.yml` builds the per-platform
 binaries, publishes a GitHub Release, and updates the Homebrew tap.
 

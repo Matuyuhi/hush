@@ -11,7 +11,7 @@ hush is pre-1.0; only the latest release receives security fixes.
 
 | Version       | Supported |
 | ------------- | --------- |
-| latest 0.2.x  | yes       |
+| latest release | yes      |
 | anything older | no       |
 
 ## Reporting a vulnerability
@@ -67,6 +67,12 @@ on every change.
   your own file permissions. Prune it with `hush gc`. Avoid wrapping commands whose output must never
   touch local disk.
 - Non-Unix platforms have no gate implementation and fail closed (hush refuses to filter).
+- The Claude Code hook (`hush install`) reads every Bash result and stores the original of
+  any result it changes in the expand store above. It runs behind the same gate.
+- hush 0.4.0 shipped a Codex `PreToolUse` hook that rewrote every shell command to run through
+  hush and returned `permissionDecision: allow`, which Codex requires for a rewrite. Codex then
+  ran those commands without its approval prompt. Later versions do not install that hook, and
+  both `hush install` and `hush uninstall` remove it from `.codex/hooks.json`.
 
 ### Dependencies & supply chain
 

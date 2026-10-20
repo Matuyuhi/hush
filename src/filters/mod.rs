@@ -28,6 +28,7 @@ pub mod kubectl_logs;
 pub mod ls;
 pub mod make;
 pub mod node_check;
+pub mod noise;
 pub mod passthrough;
 pub mod pkg_install;
 pub mod py_traceback;
@@ -109,6 +110,34 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
         ("cat", _) => passthrough::run(input),
         _ => passthrough::run(input),
     }
+}
+
+/// hook が専用フィルタで要約してよいコマンドか。ビルド・テスト・インストールのように
+/// 出力の大半が成功行や進捗で、モデルが読みたいのは失敗箇所とサマリだけというものに限る。
+/// それ以外（git diff・grep 等）の出力はモデルが中身を読むために打ったものなので含めない。
+/// `run()` の dispatch に腕を足すときは、ここに含めるべきかも合わせて判断する。
+pub fn summarizes(argv: &[String]) -> bool {
+    let a0 = argv.first().map(String::as_str).unwrap_or("");
+    let a1 = argv.get(1).map(String::as_str).unwrap_or("");
+    matches!(
+        (a0, a1),
+        ("cargo", "test" | "build" | "clippy" | "check")
+            | ("go", "test" | "build" | "vet")
+            | ("pytest" | "jest" | "vitest" | "mocha" | "ava", _)
+            | ("deno", "test")
+            | (
+                "npx",
+                "jest" | "vitest" | "mocha" | "ava" | "tsc" | "eslint"
+            )
+            | ("npm" | "pnpm" | "yarn" | "bun", "test")
+            | (
+                "npm" | "pnpm" | "yarn" | "bun",
+                "install" | "i" | "add" | "ci"
+            )
+            | ("pip" | "pip3", "install")
+            | ("tsc" | "eslint" | "make", _)
+            | ("docker", "build" | "buildx")
+    )
 }
 
 /// 曖昧さの無いフォーマット指定フラグ（値が JSON 種別なら JSON 出力）。

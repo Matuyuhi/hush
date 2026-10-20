@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 architecturally unable to transmit anything. See `README.md` for the user-facing overview;
 this file is for editing the code.
 
+Design stance: the model decides what to read. The wrap path (`hush <cmd>`) is opt-in and
+may fold aggressively. The hook path must never cut output the model narrowed or asked to
+read; it only summarizes plain build/test/install runs and strips noise (see `commands/hook.rs`).
+
 ## Commands
 
 ```sh
@@ -74,8 +78,11 @@ conspire to keep:
 
 - `commands/` holds one handler per subcommand: `doctor` (before/after socket probe proving the
   gate), `expand`, `gc`, `read`, `stats`, `install`/`uninstall` (Claude Code integration), and
-  `hook` (the PostToolUse handler — fail-safe: any problem is a no-op so the user's Bash is
-  never broken).
+  `hook` (the Claude Code PostToolUse handler — fail-safe: any problem is a no-op so the
+  user's Bash is never broken). It routes each Bash result to skip (`hush` itself, narrowed or
+  read-content output), summarize (`filters::summarizes`, plain build/test/install runs), or
+  denoise (`filters::noise`). Codex is unsupported; install/uninstall only remove the legacy
+  Codex hook.
 
 `error.rs` is a std-only `Error` enum (no anyhow/thiserror). `paths.rs` resolves the XDG dir.
 
@@ -107,6 +114,6 @@ the `Matuyuhi/homebrew-tools` tap. Third-party Actions are limited to official
 
 ## Note: this repo runs hush on itself
 
-`hush install` is set up here (a PostToolUse hook in the gitignored `.claude/`), so some Bash
-output may be compacted with a `[hush:<filter> id=<ID> ...]` footer — run `hush expand <ID>` for
-the full original. `hush doctor` confirms nothing is transmitted.
+`hush install` is set up here (a PostToolUse hook in the gitignored `.claude/`), so plain
+build/test runs and noisy Bash output may be compacted with a `[hush:<filter> id=<ID> ...]`
+footer — run `hush expand <ID>` for the full original. `hush doctor` confirms nothing is transmitted.
