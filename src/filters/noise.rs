@@ -2,7 +2,8 @@
 //!
 //! 情報を選ぶのはモデル側なので、ここでは「どの読み手にも価値のないバイト」だけを消す:
 //! - ANSI エスケープ
-//! - `\r` による上書き（プログレスバー等）は最後に表示された内容だけを残す
+//! - `\r` による上書き（プログレスバー等）は端末と同じく行頭から上書きした結果を残す。
+//!   `\r` は行を消去しないので、短い文字列で上書きされた後ろの部分も見えたまま残す
 //! - 同一行が `MIN_RUN` 回以上連続したら 1 行 + `(xN)` に畳む
 //!
 //! 行の切り詰め・離れた行の dedup・空行畳みはしない。行の順序と各行の文字列を保つため、
@@ -47,13 +48,24 @@ fn clean(text: &str) -> String {
     fold_runs(&lines).join("\n")
 }
 
-/// 端末上の見え方に合わせ、行内の最後の `\r` より後ろだけを残す。CRLF の `\r` は先に剥がす。
+/// 端末上の見え方に合わせ、`\r` ごとに行頭から上書きする。CRLF の `\r` は先に剥がす。
+/// 消去シーケンス（`ESC[K` 等）は strip_ansi で先に消えているため、端末より多く残ることはあっても
+/// 端末で見えていた文字を落とすことはない。
 fn resolve_cr(line: &str) -> String {
     let line = line.strip_suffix('\r').unwrap_or(line);
-    match line.rfind('\r') {
-        Some(i) => line[i + 1..].to_string(),
-        None => line.to_string(),
+    if !line.contains('\r') {
+        return line.to_string();
     }
+    let mut screen: Vec<char> = Vec::new();
+    for part in line.split('\r') {
+        for (i, c) in part.chars().enumerate() {
+            match screen.get_mut(i) {
+                Some(slot) => *slot = c,
+                None => screen.push(c),
+            }
+        }
+    }
+    screen.into_iter().collect()
 }
 
 fn fold_runs(lines: &[String]) -> Vec<String> {
@@ -92,6 +104,17 @@ mod tests {
         assert_eq!(resolve_cr("10%\r50%\r100% done"), "100% done");
         assert_eq!(resolve_cr("x\r"), "x");
         assert_eq!(resolve_cr("a\rb"), "b");
+    }
+
+    #[test]
+    fn shorter_overwrite_keeps_visible_tail() {
+        assert_eq!(
+            resolve_cr("record_000_payload_value\rX"),
+            "Xecord_000_payload_value"
+        );
+        // 別々のレコードが同じ短い上書きで 1 行に畳まれない。
+        let out = run(&input("rec_a\rX\nrec_b\rX\nrec_c\rX\n", "")).unwrap();
+        assert_eq!(out.compact, "Xec_a\nXec_b\nXec_c");
     }
 
     #[test]

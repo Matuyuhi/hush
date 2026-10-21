@@ -72,8 +72,8 @@ thinking about it. The hook is deliberately conservative:
 
 | Bash command the model ran | What the hook does |
 |---|---|
-| `hush ...`, anything piped into `head`/`tail`/`grep`/`jq`/..., `cat`/`sed`/`git`/`gh` | nothing |
-| a plain build, test, or install (`cargo test`, `cd app && npm install`, ...) | summarize with the command's filter |
+| `hush ...`, anything piped into `head`/`tail`/`grep`/`jq`/..., `cat`/`sed`/`git`/`gh`, anything behind `env`/`sh -c`/`xargs`/... | nothing |
+| a plain build, test, or install (`cargo test`, `cd app && npm install`, ...), but not list/dry-run/help modes such as `cargo test -- --list` or `make -n` | summarize with the command's filter |
 | anything else | strip ANSI codes, resolve `\r` redraws, fold runs of 3+ identical lines |
 
 The hook replaces a result only when the compacted body is at least 256 bytes smaller than

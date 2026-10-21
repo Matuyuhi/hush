@@ -119,7 +119,8 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 pub fn summarizes(argv: &[String]) -> bool {
     let a0 = argv.first().map(String::as_str).unwrap_or("");
     let a1 = argv.get(1).map(String::as_str).unwrap_or("");
-    matches!(
+    let a2 = argv.get(2).map(String::as_str).unwrap_or("");
+    let family = matches!(
         (a0, a1),
         ("cargo", "test" | "build" | "clippy" | "check")
             | ("go", "test" | "build" | "vet")
@@ -136,8 +137,48 @@ pub fn summarizes(argv: &[String]) -> bool {
             )
             | ("pip" | "pip3", "install")
             | ("tsc" | "eslint" | "make", _)
-            | ("docker", "build" | "buildx")
-    )
+            | ("docker", "build")
+    ) || (a0, a1, a2) == ("docker", "buildx", "build");
+    family && !is_inspection(argv)
+}
+
+/// 実行せずに一覧・計画・設定・ヘルプを出すフラグ。出力そのものがモデルの読みたい情報。
+const INSPECTION_FLAGS: &[&str] = &[
+    "-h",
+    "--help",
+    "-V",
+    "--version",
+    "--list",
+    "-list",
+    "--list-tests",
+    "--listTests",
+    "--collect-only",
+    "--co",
+    "--dry-run",
+    "--showConfig",
+    "--listFiles",
+    "--listFilesOnly",
+    "--print-config",
+    "--just-print",
+    "--recon",
+    "--print-data-base",
+    "--question",
+];
+
+/// make の短縮オプションのうち実行しないもの（`-n` dry-run / `-p` データベース / `-q` 問い合わせ）。
+/// `-np` のように連結されても拾う。`-C dir` 等の引数が連結されて誤検知しても、要約しない側に倒れる。
+const MAKE_INSPECTION_SHORT: &[char] = &['n', 'p', 'q'];
+
+fn is_inspection(argv: &[String]) -> bool {
+    let is_make = argv.first().is_some_and(|a| a == "make");
+    argv.iter().skip(1).any(|t| {
+        let flag = t.split('=').next().unwrap_or(t);
+        INSPECTION_FLAGS.contains(&flag)
+            || (is_make
+                && !t.starts_with("--")
+                && t.strip_prefix('-')
+                    .is_some_and(|s| s.contains(MAKE_INSPECTION_SHORT)))
+    })
 }
 
 /// 曖昧さの無いフォーマット指定フラグ（値が JSON 種別なら JSON 出力）。
@@ -332,6 +373,31 @@ mod tests {
         assert!(!wants_json(&argv(&["find", ".", "-o", "json"])));
         // ただし純粋な JSON 要求フラグは引き続き拾う。
         assert!(wants_json(&argv(&["somecmd", "--format", "json"])));
+    }
+
+    #[test]
+    fn summarizes_build_and_test_runs() {
+        assert!(summarizes(&argv(&["cargo", "test"])));
+        assert!(summarizes(&argv(&["make", "-j8", "all"])));
+        assert!(summarizes(&argv(&["docker", "build", "."])));
+        assert!(summarizes(&argv(&["docker", "buildx", "build", "."])));
+        assert!(!summarizes(&argv(&["git", "diff"])));
+    }
+
+    #[test]
+    fn summarizes_skips_inspection_modes() {
+        assert!(!summarizes(&argv(&["cargo", "test", "--", "--list"])));
+        assert!(!summarizes(&argv(&["go", "test", "-list", "."])));
+        assert!(!summarizes(&argv(&["pytest", "--collect-only"])));
+        assert!(!summarizes(&argv(&["npm", "install", "--dry-run"])));
+        assert!(!summarizes(&argv(&["tsc", "--showConfig"])));
+        assert!(!summarizes(&argv(&["make", "-n"])));
+        assert!(!summarizes(&argv(&["make", "--just-print"])));
+        assert!(!summarizes(&argv(&["make", "--dry-run=yes"])));
+        assert!(!summarizes(&argv(&["make", "-np", "all"])));
+        assert!(!summarizes(&argv(&["make", "-kn"])));
+        assert!(!summarizes(&argv(&["docker", "buildx", "ls"])));
+        assert!(!summarizes(&argv(&["docker", "buildx", "inspect"])));
     }
 
     #[test]

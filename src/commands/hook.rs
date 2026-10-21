@@ -2,7 +2,8 @@
 //!
 //! 方針: 情報を選ぶのはモデル、hook はノイズだけを消す。
 //! - モデルが自分で絞った出力（パイプで head/grep 等に通した・sed/cat で範囲を読んだ）や
-//!   git/gh の出力、`hush` 自身の出力には触らない（`Route::Skip`）。
+//!   git/gh の出力、`hush` 自身の出力には触らない（`Route::Skip`）。`env`/`sh -c` 等の
+//!   ラッパー越しやクォート付きの環境変数代入など、確実に判定できないものも同じく触らない。
 //! - ビルド・テスト・インストールの単独実行だけは専用フィルタで要約する（`Route::Summarize`）。
 //!   出力の大半が成功行で、Claude Code 本体の大出力退避は先頭しかプレビューしないため。
 //! - それ以外は ANSI・`\r` 上書き・長い同一行の連続だけを除く（`Route::Denoise`）。
@@ -30,6 +31,27 @@ const MIN_SAVED_BYTES: usize = 256;
 const VIEWERS: &[&str] = &[
     "cat", "sed", "head", "tail", "nl", "awk", "less", "more", "bat", "jq", "yq", "grep", "egrep",
     "fgrep", "rg", "wc", "cut", "sort", "uniq", "tr", "column", "xxd", "od", "diff", "git", "gh",
+];
+
+/// 別のコマンドを引数に取って実行するもの。中身を確実に判定できないので出力全体に触らない。
+const WRAPPERS: &[&str] = &[
+    "env",
+    "command",
+    "exec",
+    "eval",
+    "nohup",
+    "time",
+    "nice",
+    "sudo",
+    "timeout",
+    "stdbuf",
+    "xargs",
+    "caffeinate",
+    "sh",
+    "bash",
+    "zsh",
+    "dash",
+    "fish",
 ];
 
 /// パース済みの処理対象。stdin を読まず単体テストできるよう分離。
@@ -110,13 +132,23 @@ fn split_segments(command: &str) -> (Vec<String>, bool) {
 }
 
 /// 区間を argv にする。先頭の環境変数代入と `2>&1` は落とす。
-fn segment_argv(segment: &str) -> Vec<String> {
-    segment
-        .split_whitespace()
-        .skip_while(|t| is_env_assignment(t))
-        .filter(|t| *t != "2>&1")
-        .map(str::to_string)
-        .collect()
+/// 代入値にクォートがあると空白で正しく割れないため、判定不能として None を返す。
+fn segment_argv(segment: &str) -> Option<Vec<String>> {
+    let tokens: Vec<&str> = segment.split_whitespace().collect();
+    let assignments = tokens.iter().take_while(|t| is_env_assignment(t)).count();
+    if tokens[..assignments]
+        .iter()
+        .any(|t| t.contains(['\'', '"']))
+    {
+        return None;
+    }
+    Some(
+        tokens[assignments..]
+            .iter()
+            .filter(|t| **t != "2>&1")
+            .map(|t| t.to_string())
+            .collect(),
+    )
 }
 
 fn is_env_assignment(token: &str) -> bool {
@@ -133,11 +165,17 @@ fn program_name(token: &str) -> &str {
 
 fn route(command: &str) -> Route {
     let (segments, piped) = split_segments(command);
-    let argvs: Vec<Vec<String>> = segments.iter().map(|s| segment_argv(s)).collect();
+    let Some(argvs) = segments
+        .iter()
+        .map(|s| segment_argv(s))
+        .collect::<Option<Vec<Vec<String>>>>()
+    else {
+        return Route::Skip;
+    };
     let touches_content = argvs.iter().any(|a| {
         a.first()
             .map(|h| program_name(h))
-            .is_some_and(|p| p == "hush" || VIEWERS.contains(&p))
+            .is_some_and(|p| p == "hush" || VIEWERS.contains(&p) || WRAPPERS.contains(&p))
     });
     if touches_content {
         return Route::Skip;
@@ -149,10 +187,11 @@ fn route(command: &str) -> Route {
         .filter(|a| a.first().map(String::as_str) != Some("cd"))
         .collect();
     if let [argv] = rest.as_slice() {
-        let redirected = argv
+        // クォートは空白分割の argv を信用できなくするので、要約（情報を落とす側）には回さない。
+        let ambiguous = argv
             .iter()
-            .any(|t| t.contains(['>', '<', '`']) || t.contains("$("));
-        if !piped && !redirected && filters::summarizes(argv) {
+            .any(|t| t.contains(['>', '<', '`', '\'', '"']) || t.contains("$("));
+        if !piped && !ambiguous && filters::summarizes(argv) {
             return Route::Summarize(argv.to_vec());
         }
     }
@@ -401,6 +440,24 @@ mod tests {
         assert_eq!(route("hush expand 4942a10e54a2"), Route::Skip);
         assert_eq!(route("'/opt/homebrew/bin/hush' git status"), Route::Skip);
         assert_eq!(route("cd /repo && hush git diff"), Route::Skip);
+        assert_eq!(route("env hush expand 4942a10e54a2"), Route::Skip);
+        assert_eq!(route("command hush expand 4942a10e54a2"), Route::Skip);
+        assert_eq!(
+            route("LABEL='release build' hush expand 4942a10e54a2"),
+            Route::Skip
+        );
+    }
+
+    #[test]
+    fn route_skips_what_it_cannot_classify() {
+        // クォート付き代入を空白で割ると `cargo test` が先頭に来てしまう。
+        assert_eq!(
+            route("LABEL='run cargo test later' cat large.rs"),
+            Route::Skip
+        );
+        assert_eq!(route("env cat large.rs"), Route::Skip);
+        assert_eq!(route("bash -c 'cat large.rs'"), Route::Skip);
+        assert_eq!(route("xargs cat < files.txt"), Route::Skip);
     }
 
     #[test]
@@ -431,6 +488,12 @@ mod tests {
         assert_eq!(route("cargo build && cargo test"), Route::Denoise);
         assert_eq!(route("cargo test > out.txt"), Route::Denoise);
         assert_eq!(route("seq 1 200"), Route::Denoise);
+        // 一覧・dry-run は中身を見るためのモードなので要約しない。
+        assert_eq!(route("cargo test -- --list"), Route::Denoise);
+        assert_eq!(route("make -np"), Route::Denoise);
+        assert_eq!(route("docker buildx ls"), Route::Denoise);
+        // クォートがあると argv を信用できないので要約に回さない。
+        assert_eq!(route("cargo test 'my test'"), Route::Denoise);
     }
 
     #[test]
@@ -450,12 +513,12 @@ mod tests {
     fn compact_denoises_progress_output() {
         let mut stdout = String::new();
         for _ in 0..50 {
-            stdout.push_str("\x1b[32mDownloading\x1b[0m 10%\r50%\r100%\n");
+            stdout.push_str("\x1b[32mDownloading\x1b[0m 10%\rDownloading 55%\rDownloading 100%\n");
         }
         stdout.push_str("done\n");
         let (out, _) = compact(&inputs("./gradlew assemble", &stdout)).expect("denoised");
         assert_eq!(out.filter_name, "noise");
-        assert_eq!(out.compact, "100%  (x50)\ndone");
+        assert_eq!(out.compact, "Downloading 100%  (x50)\ndone");
     }
 
     #[test]

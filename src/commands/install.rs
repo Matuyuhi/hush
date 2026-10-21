@@ -22,7 +22,7 @@ const HUSH_MD: &str = "# hush - command output compaction (this project)\n\
 A PostToolUse hook runs Bash output through hush. It only removes noise; choosing what to read stays with you.\n\
 \n\
 - Output you already narrowed (piped into head/tail/grep/jq/..., or read with cat/sed/git/gh) is never changed.\n\
-- A plain `cargo test` / `npm install` / `pytest` / `make` / `tsc` ... is summarized to failures and totals.\n\
+- A plain `cargo test` / `npm install` / `pytest` / `make` / `tsc` ... is summarized to failures and totals (list, dry-run and help modes are not).\n\
 - Other output only loses ANSI colors, `\\r` progress redraws, and runs of 3+ identical lines.\n\
 - A changed result ends with a footer `[hush:<filter> id=<ID> lines=A->B - ...]`; `hush expand <ID>` prints the original byte for byte.\n\
 - For a summary on demand, run hush yourself: `hush git diff`, `hush git log`, `hush read <file> --signatures`.\n\
