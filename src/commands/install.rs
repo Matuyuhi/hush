@@ -1,11 +1,12 @@
-//! `hush install` / `hush uninstall` — Claude Code と Codex への統合。
+//! `hush install` / `hush uninstall` — Claude Code への統合。
 //!
 //! - `.claude/settings.json` に Bash の PostToolUse hook を**既存を壊さずマージ**
-//! - `.codex/hooks.json` に shell command の PreToolUse hook を**既存を壊さずマージ**
 //! - モデル向けガイド `.claude/HUSH.md` を配置
 //! - `CLAUDE.md` 末尾に `@.claude/HUSH.md`（user スコープなら `@HUSH.md`）を追記
+//! - 旧版が `.codex/hooks.json` に入れた hush hook を除去する（Codex は非対応。理由は
+//!   `commands/hook.rs` 冒頭）
 //!
-//! project スコープ（既定）はカレントのリポジトリ、`--user` は `~/.claude/` と `~/.codex/`。
+//! project スコープ（既定）はカレントのリポジトリ、`--user` は `~/.claude/`。
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,21 +17,21 @@ use crate::error::{Error, Result};
 use crate::ui::{self, Row};
 
 /// Model-facing usage guide (read every session, so keep it short).
-const HUSH_MD: &str = "# hush — compressed command output (this project)\n\
+const HUSH_MD: &str = "# hush - command output compaction (this project)\n\
 \n\
-Bash output and large file Reads in this project may be auto-compressed by hush (a PostToolUse hook).\n\
-In Codex, shell commands may be auto-wrapped with hush by the Codex PreToolUse hook.\n\
+A PostToolUse hook runs Bash output through hush. It only removes noise; choosing what to read stays with you.\n\
 \n\
-- A compressed result ends with a footer like `[hush:<filter> id=<ID> lines=A->B · hush expand <ID> for full output]`.\n\
-- **If you need the full output, run `hush expand <ID>`** — nothing is discarded; the original is restored verbatim.\n\
-- You can also call hush directly: `hush git status` / `hush git diff` / `hush read <file> --signatures` / `hush grep ...`.\n\
-- hush never sends any data off the machine by design (verify with `hush doctor`).\n";
+- Output you already narrowed (piped into head/tail/grep/jq/..., or read with cat/sed/git/gh) is never changed.\n\
+- A plain `cargo test` / `npm install` / `pytest` / `make` / `tsc` ... is summarized to failures and totals (list, dry-run and help modes are not).\n\
+- Other output only loses ANSI colors, `\\r` progress redraws, and runs of 3+ identical lines.\n\
+- A changed result ends with a footer `[hush:<filter> id=<ID> lines=A->B - ...]`; `hush expand <ID>` prints the original byte for byte.\n\
+- For a summary on demand, run hush yourself: `hush git diff`, `hush git log`, `hush read <file> --signatures`.\n\
+- hush cannot send data off the machine (verify with `hush doctor`).\n";
 
 const IMPORT_MARKER: &str = "<!-- hush -->";
 
 struct Layout {
     claude_dir: PathBuf,
-    codex_dir: PathBuf,
     settings: PathBuf,
     codex_hooks: PathBuf,
     hush_md: PathBuf,
@@ -69,7 +70,6 @@ fn layout(user: bool) -> Result<Layout> {
         claude_md,
         import_line,
         claude_dir,
-        codex_dir,
     })
 }
 
@@ -109,24 +109,27 @@ fn hook_command() -> Result<String> {
 fn render_install_result(
     user: bool,
     claude_hook: HookOutcome,
-    codex_hook: HookOutcome,
+    removed_codex_hook: bool,
     claude_import: ImportOutcome,
     cmd: &str,
     import_line: &str,
 ) {
     let scope = if user { "user" } else { "project" };
     let (settings_disp, codex_disp, hush_disp, claude_disp) = display_paths(user);
-    let rows = vec![
+    let mut rows = vec![
         Row::Center(format!("hush install ({scope})")),
         Row::Rule,
         Row::Line(format!(
             "  settings.json  {settings_disp}  ({})",
-            claude_hook.status("Bash|Read")
+            claude_hook.status(TARGET_MATCHER)
         )),
-        Row::Line(format!(
-            "  hooks.json     {codex_disp}  ({})",
-            codex_hook.status("PreToolUse shell rewrite")
-        )),
+    ];
+    if removed_codex_hook {
+        rows.push(Row::Line(format!(
+            "  hooks.json     {codex_disp}  (removed legacy Codex hook)"
+        )));
+    }
+    rows.extend([
         Row::Line(format!(
             "  CLAUDE.md      {claude_disp}  ({})",
             claude_import.status(import_line)
@@ -135,16 +138,13 @@ fn render_install_result(
         Row::Line(format!("  hook command   {cmd}")),
         Row::Rule,
         Row::Line(
-            "  Claude hook takes effect in the next Claude Code session; remove with `hush uninstall`"
+            "  the hook takes effect in the next Claude Code session; remove with `hush uninstall`"
                 .to_string(),
-        ),
-        Row::Line(
-            "  Codex may ask to trust the hook the first time it runs".to_string(),
         ),
         Row::Line(
             "  if hush moves (e.g. after brew install), run `hush install` again".to_string(),
         ),
-    ];
+    ]);
     println!();
     ui::render(&rows);
 }
@@ -153,21 +153,19 @@ pub fn run(user: bool) -> Result<i32> {
     let lay = layout(user)?;
     fs::create_dir_all(&lay.claude_dir)
         .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.claude_dir.display())))?;
-    fs::create_dir_all(&lay.codex_dir)
-        .map_err(|e| Error::Msg(format!("cannot create {}: {e}", lay.codex_dir.display())))?;
 
     fs::write(&lay.hush_md, HUSH_MD)
         .map_err(|e| Error::Msg(format!("cannot write HUSH.md: {e}")))?;
 
     let cmd = hook_command()?;
-    let claude_hook = install_hook(&lay.settings, "PostToolUse", &cmd, Some(TARGET_MATCHER))?;
-    let codex_hook = install_codex_hook(&lay.codex_hooks, &cmd)?;
+    let claude_hook = install_hook(&lay.settings, "PostToolUse", &cmd, TARGET_MATCHER)?;
+    let removed_codex_hook = remove_hook(&lay.codex_hooks)?;
     let claude_import = add_import(&lay.claude_md, &lay.import_line)?;
 
     render_install_result(
         user,
         claude_hook,
-        codex_hook,
+        removed_codex_hook,
         claude_import,
         &cmd,
         &lay.import_line,
@@ -251,9 +249,9 @@ fn entry_has_hush_hook(entry: &Value) -> bool {
         })
 }
 
-/// hush hook が対象にするツール。Bash に加え、大きい Read 出力も圧縮する。
-/// （Grep/Glob は payload 形を実機検証できてから追加する。）
-const TARGET_MATCHER: &str = "Bash|Read";
+/// hush hook が対象にするツール。Read はモデルが中身を読むために呼ぶので対象外
+/// （旧版の `Bash|Read` は upgrade_hooks がこの値へ移行する）。
+const TARGET_MATCHER: &str = "Bash";
 
 /// install_hook の結果。再実行時の表示を分けるため 3 値で返す。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,14 +273,13 @@ impl HookOutcome {
 
 /// settings の root JSON に hush hook を冪等に反映する純関数（I/O はしない）。
 ///
-/// 既存 hush エントリは command 文字列で検出する（matcher 非依存）。Claude 用は matcher
-/// を指定し、Codex 用は matcher なしで全 shell command PreToolUse に適用する。重複エントリ
-/// があれば最初の1件に寄せて残りを除去する。command も最新の絶対パスに更新する。
+/// 既存 hush エントリは command 文字列で検出する（matcher 非依存）。重複エントリがあれば
+/// 最初の1件に寄せて残りを除去する。matcher と command も最新に更新する。
 fn upgrade_hooks(
     root: &mut Value,
     event: &str,
     hook_cmd: &str,
-    matcher: Option<&str>,
+    matcher: &str,
 ) -> Result<HookOutcome> {
     let obj = root
         .as_object_mut()
@@ -305,13 +302,10 @@ fn upgrade_hooks(
 
     let Some(&first) = hush_indices.first() else {
         // 既存なし → 追加。
-        let mut entry = json!({
+        arr.push(json!({
+            "matcher": matcher,
             "hooks": [ { "type": "command", "command": hook_cmd } ]
-        });
-        if let Some(matcher) = matcher {
-            entry["matcher"] = json!(matcher);
-        }
-        arr.push(entry);
+        }));
         return Ok(HookOutcome::Added);
     };
 
@@ -333,40 +327,17 @@ fn upgrade_hooks(
         .and_then(Value::as_str)
         .unwrap_or("");
 
-    let matcher_matches = match matcher {
-        Some(matcher) => cur_matcher == matcher,
-        None => cur_matcher.is_empty(),
-    };
-    if !had_duplicates && matcher_matches && cur_cmd == hook_cmd {
+    if !had_duplicates && cur_matcher == matcher && cur_cmd == hook_cmd {
         return Ok(HookOutcome::Unchanged);
     }
-    if let Some(matcher) = matcher {
-        arr[first]["matcher"] = json!(matcher);
-    } else if let Some(obj) = arr[first].as_object_mut() {
-        obj.remove("matcher");
-    }
+    arr[first]["matcher"] = json!(matcher);
     arr[first]["hooks"] = json!([ { "type": "command", "command": hook_cmd } ]);
     Ok(HookOutcome::Upgraded)
 }
 
-fn install_hook(
-    path: &Path,
-    event: &str,
-    hook_cmd: &str,
-    matcher: Option<&str>,
-) -> Result<HookOutcome> {
+fn install_hook(path: &Path, event: &str, hook_cmd: &str, matcher: &str) -> Result<HookOutcome> {
     let mut root = read_json(path)?;
     let outcome = upgrade_hooks(&mut root, event, hook_cmd, matcher)?;
-    if outcome != HookOutcome::Unchanged {
-        write_json(path, &root)?;
-    }
-    Ok(outcome)
-}
-
-fn install_codex_hook(path: &Path, hook_cmd: &str) -> Result<HookOutcome> {
-    let mut root = read_json(path)?;
-    remove_hush_hooks_from_event(&mut root, "PostToolUse")?;
-    let outcome = upgrade_hooks(&mut root, "PreToolUse", hook_cmd, None)?;
     if outcome != HookOutcome::Unchanged {
         write_json(path, &root)?;
     }
@@ -523,45 +494,32 @@ mod tests {
     fn upgrade_adds_hook_when_absent() {
         let mut root = json!({});
         assert_eq!(
-            upgrade_hooks(&mut root, "PostToolUse", CMD, Some(TARGET_MATCHER)).unwrap(),
+            upgrade_hooks(&mut root, "PostToolUse", CMD, TARGET_MATCHER).unwrap(),
             HookOutcome::Added
         );
         let arr = root["hooks"]["PostToolUse"].as_array().unwrap();
         assert_eq!(arr.len(), 1);
-        assert_eq!(arr[0]["matcher"], "Bash|Read");
+        assert_eq!(arr[0]["matcher"], "Bash");
         assert_eq!(arr[0]["hooks"][0]["command"], CMD);
     }
 
     #[test]
-    fn upgrade_adds_codex_hook_without_matcher() {
-        let mut root = json!({});
+    fn upgrade_drops_read_from_legacy_matcher_in_place() {
+        let mut root = json!({"hooks": {"PostToolUse": [hush_entry("Bash|Read", CMD)]}});
         assert_eq!(
-            upgrade_hooks(&mut root, "PreToolUse", CMD, None).unwrap(),
-            HookOutcome::Added
-        );
-        let arr = root["hooks"]["PreToolUse"].as_array().unwrap();
-        assert_eq!(arr.len(), 1);
-        assert!(arr[0].get("matcher").is_none());
-        assert_eq!(arr[0]["hooks"][0]["command"], CMD);
-    }
-
-    #[test]
-    fn upgrade_migrates_legacy_bash_matcher_in_place() {
-        let mut root = json!({"hooks": {"PostToolUse": [hush_entry("Bash", CMD)]}});
-        assert_eq!(
-            upgrade_hooks(&mut root, "PostToolUse", CMD, Some(TARGET_MATCHER)).unwrap(),
+            upgrade_hooks(&mut root, "PostToolUse", CMD, TARGET_MATCHER).unwrap(),
             HookOutcome::Upgraded
         );
         let arr = root["hooks"]["PostToolUse"].as_array().unwrap();
         assert_eq!(arr.len(), 1, "must not duplicate the entry");
-        assert_eq!(arr[0]["matcher"], "Bash|Read");
+        assert_eq!(arr[0]["matcher"], "Bash");
     }
 
     #[test]
     fn upgrade_is_idempotent_when_already_current() {
-        let mut root = json!({"hooks": {"PostToolUse": [hush_entry("Bash|Read", CMD)]}});
+        let mut root = json!({"hooks": {"PostToolUse": [hush_entry("Bash", CMD)]}});
         assert_eq!(
-            upgrade_hooks(&mut root, "PostToolUse", CMD, Some(TARGET_MATCHER)).unwrap(),
+            upgrade_hooks(&mut root, "PostToolUse", CMD, TARGET_MATCHER).unwrap(),
             HookOutcome::Unchanged
         );
     }
@@ -569,9 +527,9 @@ mod tests {
     #[test]
     fn upgrade_refreshes_stale_command_path() {
         let mut root =
-            json!({"hooks": {"PostToolUse": [hush_entry("Bash|Read", "/old/path/hush hook")]}});
+            json!({"hooks": {"PostToolUse": [hush_entry("Bash", "/old/path/hush hook")]}});
         assert_eq!(
-            upgrade_hooks(&mut root, "PostToolUse", CMD, Some(TARGET_MATCHER)).unwrap(),
+            upgrade_hooks(&mut root, "PostToolUse", CMD, TARGET_MATCHER).unwrap(),
             HookOutcome::Upgraded
         );
         let arr = root["hooks"]["PostToolUse"].as_array().unwrap();
@@ -586,7 +544,7 @@ mod tests {
             hush_entry("Bash|Read", CMD),
         ]}});
         assert_eq!(
-            upgrade_hooks(&mut root, "PostToolUse", CMD, Some(TARGET_MATCHER)).unwrap(),
+            upgrade_hooks(&mut root, "PostToolUse", CMD, TARGET_MATCHER).unwrap(),
             HookOutcome::Upgraded
         );
         let arr = root["hooks"]["PostToolUse"].as_array().unwrap();
@@ -596,6 +554,17 @@ mod tests {
             arr.iter().any(|e| e["matcher"] == "Write"),
             "unrelated entries are preserved"
         );
+    }
+
+    #[test]
+    fn legacy_codex_pretool_hook_is_removed() {
+        let mut root = json!({"hooks": {"PreToolUse": [
+            {"hooks": [{"type": "command", "command": CMD}]},
+            {"hooks": [{"type": "command", "command": "echo other"}]},
+        ]}});
+        assert!(remove_hush_hooks_from_event(&mut root, "PreToolUse").unwrap());
+        let arr = root["hooks"]["PreToolUse"].as_array().unwrap();
+        assert_eq!(arr.len(), 1, "unrelated entries are preserved");
     }
 
     #[test]

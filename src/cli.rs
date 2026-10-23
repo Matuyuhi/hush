@@ -52,16 +52,16 @@ pub enum Cmd {
     /// Show how much output has been compressed so far
     Stats,
 
-    /// Integrate with Claude Code and Codex hooks
+    /// Integrate with Claude Code (a PostToolUse hook for Bash)
     Install {
-        /// Install into the user scope (~/.claude/ and ~/.codex/) instead of the project
+        /// Install into the user scope (~/.claude/) instead of the project
         #[arg(long)]
         user: bool,
     },
 
     /// Remove what `hush install` set up
     Uninstall {
-        /// Target the user scope (~/.claude/ and ~/.codex/)
+        /// Target the user scope (~/.claude/; also removes a legacy ~/.codex/ hook)
         #[arg(long)]
         user: bool,
     },
