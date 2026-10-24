@@ -59,7 +59,17 @@ impl Store {
     /// ストアを開く（ディレクトリが無ければ作成）。
     pub fn open() -> Result<Self> {
         let objects = paths::objects_dir()?;
-        fs::create_dir_all(&objects)
+        let mut builder = fs::DirBuilder::new();
+        builder.recursive(true);
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+
+        builder
+            .create(&objects)
             .map_err(|e| Error::Store(format!("cannot create {}: {e}", objects.display())))?;
         Ok(Store { objects })
     }
