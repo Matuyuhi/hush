@@ -133,11 +133,16 @@ fn now_unix() -> u64 {
 /// O_EXCL で新規作成して書き込む。既存(AlreadyExists)は dedup として成功扱い。
 fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
-    match fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(path)
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+
+    #[cfg(unix)]
     {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+
+    match options.open(path) {
         Ok(mut f) => f.write_all(bytes),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
         Err(e) => Err(e),
@@ -307,5 +312,25 @@ mod tests {
         let id2 = store.put(original, meta2).unwrap();
 
         assert_eq!(id1, id2);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn write_new_creates_file_with_restrictive_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("secure_file");
+        let content = b"secret";
+
+        write_new(&path, content).unwrap();
+
+        let metadata = fs::metadata(&path).unwrap();
+        let permissions = metadata.permissions();
+
+        // Assert the mode has only read and write permissions for the owner (0o600).
+        // On Unix, permissions.mode() returns the full mode including file type,
+        // so we bitwise AND with 0o777 to check just the permissions bits.
+        assert_eq!(permissions.mode() & 0o777, 0o600);
     }
 }
