@@ -33,3 +33,138 @@ pub fn data_dir() -> Result<PathBuf> {
 pub fn objects_dir() -> Result<PathBuf> {
     Ok(data_dir()?.join("objects"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::sync::Mutex;
+
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
+
+    struct EnvGuard {
+        _lock: std::sync::MutexGuard<'static, ()>,
+        old_xdg: Option<std::ffi::OsString>,
+        old_home: Option<std::ffi::OsString>,
+    }
+
+    impl EnvGuard {
+        fn new() -> Self {
+            let lock = ENV_MUTEX.lock().unwrap();
+            let old_xdg = env::var_os("XDG_DATA_HOME");
+            let old_home = env::var_os("HOME");
+            Self {
+                _lock: lock,
+                old_xdg,
+                old_home,
+            }
+        }
+
+        fn set_xdg(&self, val: Option<&str>) {
+            unsafe {
+                if let Some(v) = val {
+                    env::set_var("XDG_DATA_HOME", v);
+                } else {
+                    env::remove_var("XDG_DATA_HOME");
+                }
+            }
+        }
+
+        fn set_home(&self, val: Option<&str>) {
+            unsafe {
+                if let Some(v) = val {
+                    env::set_var("HOME", v);
+                } else {
+                    env::remove_var("HOME");
+                }
+            }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            unsafe {
+                if let Some(ref val) = self.old_xdg {
+                    env::set_var("XDG_DATA_HOME", val);
+                } else {
+                    env::remove_var("XDG_DATA_HOME");
+                }
+
+                if let Some(ref val) = self.old_home {
+                    env::set_var("HOME", val);
+                } else {
+                    env::remove_var("HOME");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_data_dir_xdg_absolute() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(Some("/tmp/custom_xdg"));
+        guard.set_home(Some("/tmp/custom_home")); // Should be ignored
+
+        let dir = data_dir().unwrap();
+        assert_eq!(dir, PathBuf::from("/tmp/custom_xdg/hush"));
+    }
+
+    #[test]
+    fn test_data_dir_xdg_relative_falls_back() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(Some("relative/xdg"));
+        guard.set_home(Some("/tmp/custom_home"));
+
+        let dir = data_dir().unwrap();
+        assert_eq!(dir, PathBuf::from("/tmp/custom_home/.local/share/hush"));
+    }
+
+    #[test]
+    fn test_data_dir_xdg_empty_falls_back() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(Some(""));
+        guard.set_home(Some("/tmp/custom_home"));
+
+        let dir = data_dir().unwrap();
+        assert_eq!(dir, PathBuf::from("/tmp/custom_home/.local/share/hush"));
+    }
+
+    #[test]
+    fn test_data_dir_xdg_not_set_falls_back() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(None);
+        guard.set_home(Some("/tmp/custom_home"));
+
+        let dir = data_dir().unwrap();
+        assert_eq!(dir, PathBuf::from("/tmp/custom_home/.local/share/hush"));
+    }
+
+    #[test]
+    fn test_data_dir_home_not_set() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(None);
+        guard.set_home(None);
+
+        let err = data_dir().unwrap_err();
+        assert!(err.to_string().contains("HOME is not set"));
+    }
+
+    #[test]
+    fn test_data_dir_home_relative() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(None);
+        guard.set_home(Some("relative/home"));
+
+        let err = data_dir().unwrap_err();
+        assert!(err.to_string().contains("HOME is not an absolute path"));
+    }
+
+    #[test]
+    fn test_objects_dir() {
+        let guard = EnvGuard::new();
+        guard.set_xdg(Some("/tmp/custom_xdg"));
+
+        let dir = objects_dir().unwrap();
+        assert_eq!(dir, PathBuf::from("/tmp/custom_xdg/hush/objects"));
+    }
+}
