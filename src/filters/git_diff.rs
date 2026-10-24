@@ -18,18 +18,9 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     let mut total_add = 0usize;
     let mut total_del = 0usize;
 
-    let flush =
-        |files: &mut Vec<String>, cur: &mut Option<String>, add: &mut usize, del: &mut usize| {
-            if let Some(path) = cur.take() {
-                files.push(format!("{path}  (+{add} -{del})"));
-            }
-            *add = 0;
-            *del = 0;
-        };
-
     for line in text.lines() {
         if line.starts_with("diff --git") {
-            flush(&mut files, &mut cur, &mut add, &mut del);
+            super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
             // "diff --git a/foo b/foo" → "foo"
             let path = line
                 .split(" b/")
@@ -58,7 +49,7 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
             total_del += 1;
         }
     }
-    flush(&mut files, &mut cur, &mut add, &mut del);
+    super::common::flush_diff_file(&mut files, &mut cur, &mut add, &mut del);
 
     // diff として解釈できなければ汎用圧縮にフォールバック。
     if files.is_empty() {
