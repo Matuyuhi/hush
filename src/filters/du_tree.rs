@@ -173,14 +173,7 @@ fn looks_like_tree_summary(line: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn input(argv: &[&str], stdout: &str) -> FilterInput {
-        FilterInput {
-            argv: argv.iter().map(|s| s.to_string()).collect(),
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: Vec::new(),
-        }
-    }
+    use crate::filters::test_utils::input;
 
     #[test]
     fn du_truncates_middle_but_keeps_total() {

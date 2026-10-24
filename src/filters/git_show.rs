@@ -187,14 +187,7 @@ fn summarize_diff(diff_lines: &[&str]) -> (Vec<String>, usize, usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn input(argv: &[&str], stdout: &str) -> FilterInput {
-        FilterInput {
-            argv: argv.iter().map(|s| s.to_string()).collect(),
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: Vec::new(),
-        }
-    }
+    use crate::filters::test_utils::input;
 
     const SHOW: &str = "\
 commit 1234567890abcdef1234567890abcdef12345678 (HEAD -> main)

@@ -308,6 +308,27 @@ pub fn finalize(
 }
 
 #[cfg(test)]
+pub(crate) mod test_utils {
+    use super::FilterInput;
+
+    pub fn input(argv: &[&str], stdout: &str) -> FilterInput {
+        FilterInput {
+            argv: argv.iter().map(|s| s.to_string()).collect(),
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: Vec::new(),
+        }
+    }
+
+    pub fn input_with_stderr(argv: &[&str], stdout: &str, stderr: &str) -> FilterInput {
+        FilterInput {
+            argv: argv.iter().map(|s| s.to_string()).collect(),
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: stderr.as_bytes().to_vec(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -53,13 +53,10 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::input as test_input;
 
     fn input(stdout: &str) -> FilterInput {
-        FilterInput {
-            argv: vec!["find".to_string(), ".".to_string()],
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: Vec::new(),
-        }
+        test_input(&["find", "."], stdout)
     }
 
     #[test]

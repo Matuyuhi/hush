@@ -79,13 +79,10 @@ pub fn run_plain(input: &FilterInput) -> Result<FilterOutput> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::input_with_stderr as test_input_with_stderr;
 
     fn input(stdout: &str, stderr: &str) -> FilterInput {
-        FilterInput {
-            argv: vec!["test-cmd".into()],
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: stderr.as_bytes().to_vec(),
-        }
+        test_input_with_stderr(&["test-cmd"], stdout, stderr)
     }
 
     #[test]

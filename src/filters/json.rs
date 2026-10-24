@@ -208,13 +208,10 @@ fn shrink(v: &Value, depth: usize) -> (Value, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::filters::test_utils::input as test_input;
 
     fn input(stdout: &str) -> FilterInput {
-        FilterInput {
-            argv: vec!["jq".into()],
-            stdout: stdout.as_bytes().to_vec(),
-            stderr: Vec::new(),
-        }
+        test_input(&["jq"], stdout)
     }
 
     #[test]
