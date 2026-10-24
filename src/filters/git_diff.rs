@@ -3,8 +3,8 @@
 //! ハンク本体は捨てず expand に回し、ファイル単位の増減サマリ
 //! （`path  (+12 -3)`）だけを表示する。diff 形式でなければ passthrough。
 
-use super::common::combine_raw;
-use super::{FilterInput, FilterOutput, passthrough};
+use super::common::format_diff_summary;
+use super::{FilterInput, FilterOutput};
 use crate::error::Result;
 
 pub fn run(input: &FilterInput) -> Result<FilterOutput> {
@@ -61,26 +61,15 @@ pub fn run(input: &FilterInput) -> Result<FilterOutput> {
     flush(&mut files, &mut cur, &mut add, &mut del);
 
     // diff として解釈できなければ汎用圧縮にフォールバック。
-    if files.is_empty() {
-        return passthrough::run(input);
-    }
-
-    let header = format!("{} files changed (+{total_add} -{total_del}):", files.len());
-    let mut out = Vec::with_capacity(files.len() + 1);
-    out.push(header);
-    out.extend(files);
-
-    let shown_lines = out.len();
-    let compact = out.join("\n");
-    let original = Some(combine_raw(&input.stdout, &input.stderr));
-
-    Ok(FilterOutput {
-        filter_name: "git-diff",
-        compact,
-        original,
+    format_diff_summary(
+        input,
+        "git-diff",
         orig_lines,
-        shown_lines,
-    })
+        files,
+        total_add,
+        total_del,
+        true, // always valid if we collected files
+    )
 }
 
 #[cfg(test)]
@@ -150,8 +139,10 @@ index e69de29..0000000
 
     #[test]
     fn falls_back_on_non_diff() {
-        let out = run(&input("just some random text\nnot a diff at all\n")).unwrap();
-        assert_eq!(out.filter_name, "passthrough");
+        super::super::common::test_falls_back_on_non_diff(
+            run,
+            vec!["git".into(), "diff".into()],
+        );
     }
 
     #[test]
