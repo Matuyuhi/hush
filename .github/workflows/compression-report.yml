@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       # Action は供給網を増やさないよう公式の checkout / cache のみ（commit SHA 固定）。
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@v7.0.0
 
       - name: Setup Rust
         run: |
@@ -56,7 +56,7 @@ jobs:
           echo "key=$key" >> "$GITHUB_OUTPUT"
 
       - name: Cache cargo & target
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cargo/registry/index
